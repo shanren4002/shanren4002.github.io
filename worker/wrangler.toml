@@ -6,11 +6,15 @@ name = "portfolio-backend"
 main = "src/index.js"
 compatibility_date = "2026-10-29"
 
-# [vars] 仅放非敏感配置；敏感值（CLIENT_ID/CLIENT_SECRET/PAT）一律走
+# [vars] 仅放非敏感配置；敏感值（CLIENT_SECRET/PAT）一律走
 # `wrangler secret put`，禁止写进本文件（安全红线：零入库）。
-# 已回填（2026-10-29）：站点域名为 shanren4002.github.io。
+# 已回填（2026-10-29）：站点域名 shanren4002.github.io；
+# GITHUB_CLIENT_ID 来自用户注册的 OAuth App（公开信息，随 OAuth 链接传输）；
+# ALLOWED_USERS = 上传白名单（user id，M3.5 生效；当前仅 shanren4002 一人）。
 [vars]
 ALLOWED_ORIGIN = "https://shanren4002.github.io"
+GITHUB_CLIENT_ID = "Ov23lijqsOF9BX5xnW8S"
+ALLOWED_USERS = "213465035"
 
 # M2+ 绑定自定义域（同源后台，无 CORS 面）后取消注释并回填：
 # [[routes]]
