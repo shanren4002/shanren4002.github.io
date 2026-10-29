@@ -88,10 +88,10 @@ python3 scripts/check_content.py  # 同上，CI 门禁①同款
 
 > 顺序刚性（全案 §4）：先拿 Worker 域名 → 再注册 OAuth App → 最后建仓推送。
 
-- [ ] GitHub 用户名已确认 → 已替换 `astro.config.mjs` 中 `USERNAME` 与 `worker/wrangler.toml` 中 `ALLOWED_ORIGIN`
-- [ ] Cloudflare 账号就绪 → `pnpm exec wrangler login` 已执行
-- [ ] Worker 空壳已部署 → 已拿到 `<worker>.workers.dev` 域名（`GET /` 返回 `stage: M0-skeleton`）
-- [ ] GitHub OAuth App 已注册（callback = `https://<worker域名>/api/v1/auth/callback`），Client ID/Secret 已通过 `wrangler secret put` 注入（**不落盘**）
-- [ ] 白名单 user id 已提供（仓库级配置，M3.5 生效）
-- [ ] PAT 已建：`Contents: write`（必须）+ `Actions: write`（建议），已 `wrangler secret put` 注入
-- [ ] 仓库已建并推送 → Actions 双门禁全绿 → Pages 上线
+- [x] GitHub 用户名已确认（**shanren4002**）→ 已替换 `astro.config.mjs` 中 site 与 `worker/wrangler.toml` 中 `ALLOWED_ORIGIN`
+- [x] Cloudflare 账号就绪 → wrangler login 已完成（用户终端执行，OAuth token 存 `C:\Users\Ljk\AppData\Roaming\xdg.config\.wrangler\config\default.toml`）
+- [x] Worker 空壳已部署 → 域名 **`https://portfolio-backend.3506328561.workers.dev`**（版本 dd3124b2，2026-10-29 13:30 UTC；沙箱 DNS 不可达 workers.dev，浏览器可达性待用户验证）
+- [x] 仓库已建（`shanren4002.github.io`，public 空仓）并推送 → Actions 双门禁触发中
+- [ ] GitHub OAuth App 待注册（callback = `https://portfolio-backend.3506328561.workers.dev/api/v1/auth/callback`），Client ID 入 [vars]、Secret 走 `wrangler secret put`（**不落盘**）
+- [ ] 白名单 user id 待提供（M3.5 生效）
+- [ ] PAT 待建：`Contents: write`（必须）+ `Actions: write`（建议），`wrangler secret put` 注入
