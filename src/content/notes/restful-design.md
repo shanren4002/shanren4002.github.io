@@ -4,7 +4,7 @@ slug: restful-design
 category: "HTTP knowledges"
 tags: [HTTP, RESTful]
 date: 2026-09-17
-status: draft
+status: published
 summary: "用 URL 表示资源、用 HTTP 方法表示操作的 REST 设计风格速览"
 source: "笔记/HTTP knowledges/RESTful设计.md"
 ---

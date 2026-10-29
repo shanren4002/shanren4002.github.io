@@ -4,7 +4,7 @@ slug: python-init-py
 category: "Python"
 tags: [Python, 包管理]
 date: 2026-09-15
-status: draft
+status: published
 summary: "__init__.py 如何将目录标记为 Python 包及其多层作用详解"
 source: "笔记/Python/__init__.py.md"
 ---

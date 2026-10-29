@@ -4,7 +4,7 @@ slug: clean-code-habits
 category: "code_knowledge"
 tags: [编程习惯, 代码质量]
 date: 2026-09-07
-status: draft
+status: published
 summary: "主路径清晰、命名有意义、隔离外部依赖、减少无效状态"
 source: "笔记/code_knowledge/良好编程习惯.md"
 ---

@@ -4,7 +4,7 @@ slug: ai-core-terminology
 category: "AI knowledge"
 tags: [AI, LLM, 基础概念]
 date: 2026-02-23
-status: draft
+status: published
 summary: "LLM、Prompt、Context、Memory 等 AI 核心概念的通俗解析"
 source: "笔记/AI knowledge/关于现在ai的专业名词.md"
 ---

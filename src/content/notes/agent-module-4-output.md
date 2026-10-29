@@ -4,7 +4,7 @@ slug: agent-module-4-output
 category: "agent ai"
 tags: [Agent, Coze]
 date: 2026-09-21
-status: draft
+status: published
 summary: "人生之书、个人知识库、综合评价、用户画像四大档案的收录规则"
 source: "笔记/agent ai/第四模块 产出定义.md"
 ---

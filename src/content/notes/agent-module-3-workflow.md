@@ -4,7 +4,7 @@ slug: agent-module-3-workflow
 category: "agent ai"
 tags: [Agent, Coze]
 date: 2026-09-20
-status: draft
+status: published
 summary: "单轮对话四步闭环的访谈工作流与迭代规则"
 source: "笔记/agent ai/第三模块 流程.md"
 ---

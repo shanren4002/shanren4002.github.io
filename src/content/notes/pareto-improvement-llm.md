@@ -4,7 +4,7 @@ slug: pareto-improvement-llm
 category: "AI knowledge"
 tags: [AI, 大模型, 行业认知]
 date: 2026-09-06
-status: draft
+status: published
 summary: "用帕累托改进与斩杀线理解大模型的性价比竞争格局"
 source: "笔记/AI knowledge/Ai模型的帕累托.md"
 ---

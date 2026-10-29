@@ -4,7 +4,7 @@ slug: agent-module-2-skills
 category: "agent ai"
 tags: [Agent, Coze]
 date: 2026-09-19
-status: draft
+status: published
 summary: "叙事疗法倾听、渐进引导、细节补全等访谈研究员职业技能固化"
 source: "笔记/agent ai/第二模块 技能.md"
 ---

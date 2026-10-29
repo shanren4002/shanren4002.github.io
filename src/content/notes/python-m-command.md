@@ -4,7 +4,7 @@ slug: python-m-command
 category: "Python"
 tags: [Python]
 date: 2026-09-25
-status: draft
+status: published
 summary: "模块方式与文件方式运行的本质区别及其对导入系统的影响"
 source: "笔记/Python/“python -m ”命令参数.md"
 ---

@@ -4,7 +4,7 @@ slug: smart-cs-db-init-issues
 category: "智能客服"
 tags: [Python, 数据库, 排错]
 date: 2026-09-24
-status: draft
+status: published
 summary: "Python 3.14 环境下 SQLAlchemy/NumPy/LangChain 连环报错的解决全记录"
 source: "笔记/FastAPI/智能客服/初始化数据库问题.md"
 ---

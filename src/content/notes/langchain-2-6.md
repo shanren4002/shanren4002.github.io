@@ -4,7 +4,7 @@ slug: langchain-2-6
 category: "智能客服"
 tags: [LangChain]
 date: 2026-09-27
-status: draft
+status: published
 summary: "LCEL astream 流式方法与 FastAPI StreamingResponse 实战"
 source: "笔记/FastAPI/智能客服/LangChain 2.6.md"
 ---

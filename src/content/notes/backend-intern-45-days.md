@@ -4,7 +4,7 @@ slug: backend-intern-45-days
 category: "AI prompt"
 tags: [Prompt, 求职, 后端]
 date: 2026-03-11
-status: draft
+status: published
 summary: "面向基础薄弱学生的 45 天大厂后端实习冲刺路线与项目构思指令"
 source: "笔记/AI prompt/editor.md"
 ---

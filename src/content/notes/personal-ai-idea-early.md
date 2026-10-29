@@ -4,7 +4,7 @@ slug: personal-ai-idea-early
 category: "AIPERSON"
 tags: [个人AI, 项目构想]
 date: 2026-09-11
-status: draft
+status: published
 summary: "个人 AI 数字关系的早期构想：在自然聊天中收集信息并沉淀为个人记录"
 source: "笔记/AIPERSON/未命名 1.md"
 ---

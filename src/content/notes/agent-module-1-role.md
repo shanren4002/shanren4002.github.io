@@ -4,7 +4,7 @@ slug: agent-module-1-role
 category: "agent ai"
 tags: [Agent, Coze, 人设]
 date: 2026-09-19
-status: draft
+status: published
 summary: "Coze 职业角色系统提示词设计：人设与业务能力分离架构"
 source: "笔记/agent ai/第一模块 角色.md"
 ---

@@ -4,7 +4,7 @@ slug: smart-cs-outline
 category: "智能客服"
 tags: [智能客服, 学习路线]
 date: 2026-09-29
-status: draft
+status: published
 summary: "十大模块边学边拼的智能客服项目实战安排"
 source: "笔记/FastAPI/智能客服/智能客服大纲.md"
 ---

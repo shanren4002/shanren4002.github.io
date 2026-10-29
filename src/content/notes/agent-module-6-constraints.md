@@ -4,7 +4,7 @@ slug: agent-module-6-constraints
 category: "agent ai"
 tags: [Agent, Coze]
 date: 2026-09-21
-status: draft
+status: published
 summary: "对话输出格式约束、提问规则与能力边界（非心理咨询师）"
 source: "笔记/agent ai/第六模块 约束.md"
 ---

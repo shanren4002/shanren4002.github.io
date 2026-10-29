@@ -4,7 +4,7 @@ slug: smart-cs-qa
 category: "智能客服"
 tags: [FastAPI, Pydantic, 智能客服]
 date: 2026-09-21
-status: draft
+status: published
 summary: "嵌套模型、响应模型、状态码与错误处理的 FastAPI 问答整理"
 source: "笔记/FastAPI/智能客服/智能客服问答.md"
 ---

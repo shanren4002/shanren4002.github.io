@@ -4,7 +4,7 @@ slug: smart-cs-fastapi
 category: "智能客服"
 tags: [FastAPI, Pydantic, 智能客服]
 date: 2026-09-21
-status: draft
+status: published
 summary: "请求模型、Field 校验等智能客服项目的 FastAPI 核心知识"
 source: "笔记/FastAPI/智能客服/智能客服FastAPI知识点.md"
 ---

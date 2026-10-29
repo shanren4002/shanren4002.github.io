@@ -4,7 +4,7 @@ slug: github-upload-workflow
 category: "后端基础学习"
 tags: [Git, GitHub]
 date: 2026-04-04
-status: draft
+status: published
 summary: "本地项目上传 GitHub 的标准流程与三类典型问题的排查解决"
 source: "笔记/后端基础学习/GitHub 项目本地代码上传全流程.md"
 ---

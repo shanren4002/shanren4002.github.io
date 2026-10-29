@@ -4,7 +4,7 @@ slug: context-engineering-3-4
 category: "智能客服"
 tags: [LLM, 上下文工程]
 date: 2026-09-29
-status: draft
+status: published
 summary: "会话摘要的定位、触发策略与递归压缩实现"
 source: "笔记/FastAPI/智能客服/上下文工程 3.4.md"
 ---

@@ -4,7 +4,7 @@ slug: openai-api-protocol
 category: "智能客服"
 tags: [OpenAI, API]
 date: 2026-09-25
-status: draft
+status: published
 summary: "两大核心接口对比：无状态对话补全与新一代 Responses API"
 source: "笔记/FastAPI/智能客服/openai协议.md"
 ---

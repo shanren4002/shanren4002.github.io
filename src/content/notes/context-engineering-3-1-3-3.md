@@ -4,7 +4,7 @@ slug: context-engineering-3-1-3-3
 category: "智能客服"
 tags: [LLM, 上下文工程]
 date: 2026-09-28
-status: draft
+status: published
 summary: "上下文组成、优先级与裁剪策略：Token 不够时先砍谁"
 source: "笔记/FastAPI/智能客服/上下文工程 3.1 ~ 3.3.md"
 ---

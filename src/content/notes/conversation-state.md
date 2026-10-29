@@ -4,7 +4,7 @@ slug: conversation-state
 category: "AI knowledge"
 tags: [AI, 对话系统, Memory]
 date: 2026-09-15
-status: draft
+status: published
 summary: "从短期到长期梳理对话状态的各个层次及其作用"
 source: "笔记/AI knowledge/对话状态.md"
 ---

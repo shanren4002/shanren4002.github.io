@@ -4,7 +4,7 @@ slug: python-factory-os
 category: "Python"
 tags: [Python, 设计模式]
 date: 2026-09-27
-status: draft
+status: published
 summary: "从生活类比理解工厂模式，串联函数类型与 os 常用操作"
 source: "笔记/Python/Python中的工厂、os.md"
 ---

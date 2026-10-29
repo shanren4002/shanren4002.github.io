@@ -4,7 +4,7 @@ slug: langchain-2-4-2-5
 category: "智能客服"
 tags: [LangChain]
 date: 2026-09-27
-status: draft
+status: published
 summary: "输出解析器与工具绑定、意图路由的知识点整理"
 source: "笔记/FastAPI/智能客服/LangChain 2.4 ~ 2.5.md"
 ---

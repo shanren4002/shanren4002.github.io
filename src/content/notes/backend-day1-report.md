@@ -4,7 +4,7 @@ slug: backend-day1-report
 category: "后端基础学习"
 tags: [后端, 学习日志]
 date: 2026-03-12
-status: draft
+status: published
 summary: "Ubuntu 下 Java 开发环境配置与 Git 身份初始化记录"
 source: "笔记/后端基础学习/day 1 报告.md"
 ---

@@ -4,7 +4,7 @@ slug: human-like-personal-ai
 category: "AIPERSON"
 tags: [个人AI, 项目构想]
 date: 2026-10-18
-status: draft
+status: published
 summary: "不做全能的聊天 AI，而是用人和人说话的方式慢慢认识一个人，帮他留住日子"
 source: "笔记/AIPERSON/像人一样的个人 AI.md"
 ---

@@ -4,7 +4,7 @@ slug: ai-personal-chronicle-review
 category: "AIPERSON"
 tags: [个人AI, DeepSeek, API]
 date: 2026-09-14
-status: draft
+status: published
 summary: "AI 个人史记项目初期复盘：DeepSeek API 调用与初始化的关键依赖"
 source: "笔记/AIPERSON/初章——调用初始化.md"
 ---

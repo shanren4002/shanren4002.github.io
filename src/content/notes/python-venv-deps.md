@@ -4,7 +4,7 @@ slug: python-venv-deps
 category: "Python"
 tags: [Python, venv]
 date: 2026-09-17
-status: draft
+status: published
 summary: "创建虚拟环境隔离项目依赖的完整命令与流程"
 source: "笔记/Python/虚拟环境于依赖管理.md"
 ---

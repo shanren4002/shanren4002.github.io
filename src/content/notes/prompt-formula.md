@@ -4,7 +4,7 @@ slug: prompt-formula
 category: "AI prompt"
 tags: [Prompt]
 date: 2026-09-20
-status: draft
+status: published
 summary: "角色、技能、目标、背景、范围、限制与输出格式七要素提示词模板"
 source: "笔记/AI prompt/prompt 公式.md"
 ---

@@ -4,7 +4,7 @@ slug: fastapi-form-async
 category: "FastAPI"
 tags: [FastAPI, async]
 date: 2026-08-29
-status: draft
+status: published
 summary: "Form 表单数据三种用法与同步/异步接口的执行机制"
 source: "笔记/FastAPI/FastAPI 表单数据、异步.md"
 ---

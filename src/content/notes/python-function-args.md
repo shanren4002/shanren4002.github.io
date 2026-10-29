@@ -4,7 +4,7 @@ slug: python-function-args
 category: "Python"
 tags: [Python]
 date: 2026-09-27
-status: draft
+status: published
 summary: "四大基础参数类别到 Python 3.8+ 进阶语法的完整讲解"
 source: "笔记/Python/Python 函数参数类别.md"
 ---

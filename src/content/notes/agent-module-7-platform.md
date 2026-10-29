@@ -4,7 +4,7 @@ slug: agent-module-7-platform
 category: "agent ai"
 tags: [Agent, Coze]
 date: 2026-09-21
-status: draft
+status: published
 summary: "Coze 变量池使用与工作流对接规则说明"
 source: "笔记/agent ai/第七模块 说明.md"
 ---

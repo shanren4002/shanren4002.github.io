@@ -4,7 +4,7 @@ slug: smart-cs-database
 category: "智能客服"
 tags: [SQLAlchemy, 数据库, 智能客服]
 date: 2026-09-24
-status: draft
+status: published
 summary: "SQLAlchemy 2.0 异步引擎、Session 与短期记忆的数据层设计"
 source: "笔记/FastAPI/智能客服/智能客服数据库部分知识点.md"
 ---

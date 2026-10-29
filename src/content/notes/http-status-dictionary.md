@@ -4,7 +4,7 @@ slug: http-status-dictionary
 category: "HTTP knowledges"
 tags: [HTTP, 后端基础]
 date: 2026-09-07
-status: draft
+status: published
 summary: "完整 HTTP 状态码字典：按分类逐条查阅含义与典型场景"
 source: "笔记/HTTP knowledges/状态码字典.md"
 ---

@@ -4,7 +4,7 @@ slug: python-type-hints
 category: "Python"
 tags: [Python]
 date: 2026-09-17
-status: draft
+status: published
 summary: "类型注解基础与容器写法：让编辑器与 Pydantic 帮你做检查"
 source: "笔记/Python/类型注解.md"
 ---

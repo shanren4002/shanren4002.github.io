@@ -4,7 +4,7 @@ slug: prompt-engineering-master
 category: "AI prompt"
 tags: [Prompt, AI]
 date: 2026-03-10
-status: draft
+status: published
 summary: "通过逐步提问收敛需求、生成高质量提示词的专家指令"
 source: "笔记/AI prompt/Prompt Engineering.md"
 ---

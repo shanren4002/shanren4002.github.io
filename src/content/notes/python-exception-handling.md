@@ -4,7 +4,7 @@ slug: python-exception-handling
 category: "Python"
 tags: [Python]
 date: 2026-09-17
-status: draft
+status: published
 summary: "try/except 异常捕获与 FastAPI 统一异常处理实践"
 source: "笔记/Python/异常处理基础.md"
 ---

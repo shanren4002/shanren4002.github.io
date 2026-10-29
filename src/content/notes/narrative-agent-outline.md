@@ -4,7 +4,7 @@ slug: narrative-agent-outline
 category: "agent ai"
 tags: [Agent, Coze]
 date: 2026-09-20
-status: draft
+status: published
 summary: "叙事访谈智能体七大模块总纲：从角色定位到平台适配"
 source: "笔记/agent ai/大纲.md"
 ---

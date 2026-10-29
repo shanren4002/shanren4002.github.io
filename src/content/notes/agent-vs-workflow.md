@@ -4,7 +4,7 @@ slug: agent-vs-workflow
 category: "AI knowledge"
 tags: [AI, Agent, Workflow]
 date: 2026-09-14
-status: draft
+status: published
 summary: "从定义、对比到真实应用模式，拆解 Workflow 与 Agent 的自主性光谱"
 source: "笔记/AI knowledge/Agent And WorkFlow.md"
 ---

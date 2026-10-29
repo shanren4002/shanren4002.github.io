@@ -4,7 +4,7 @@ slug: http-status-codes
 category: "HTTP knowledges"
 tags: [HTTP, 后端基础]
 date: 2026-09-06
-status: draft
+status: published
 summary: "五大类 HTTP 状态码速查表与 RESTful 开发中的常见用法"
 source: "笔记/HTTP knowledges/状态码.md"
 ---

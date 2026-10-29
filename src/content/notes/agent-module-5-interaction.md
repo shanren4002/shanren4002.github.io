@@ -4,7 +4,7 @@ slug: agent-module-5-interaction
 category: "agent ai"
 tags: [Agent, Coze]
 date: 2026-09-21
-status: draft
+status: published
 summary: "会话启动与进行中的循环规则：渐进开场、单次单问、风格绑定"
 source: "笔记/agent ai/第五模块 交互规则.md"
 ---

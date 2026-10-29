@@ -4,7 +4,7 @@ slug: personal-ai-idea-dump
 category: "AIPERSON"
 tags: [个人AI, 项目构想]
 date: 2026-09-15
-status: draft
+status: published
 summary: "个人 AI 的原始构想：定制化、有记忆、模块化开发的聊天式日记助手"
 source: "笔记/AIPERSON/未命名.md"
 ---

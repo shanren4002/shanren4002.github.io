@@ -4,7 +4,7 @@ slug: json-data-format
 category: "HTTP knowledges"
 tags: [HTTP, JSON]
 date: 2026-09-17
-status: draft
+status: published
 summary: "API 常用 JSON 数据格式示例：订单结构与嵌套数组"
 source: "笔记/HTTP knowledges/JSON数据格式.md"
 ---

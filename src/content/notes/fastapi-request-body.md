@@ -4,7 +4,7 @@ slug: fastapi-request-body
 category: "FastAPI"
 tags: [FastAPI, Pydantic]
 date: 2026-08-29
-status: draft
+status: published
 summary: "用 Pydantic BaseModel 定义请求体与 Query 参数认证入门"
 source: "笔记/FastAPI/Fast API请求体，参数认证.md"
 ---

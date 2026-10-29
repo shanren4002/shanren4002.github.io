@@ -4,7 +4,7 @@ slug: linux-safety-basics
 category: "code_knowledge"
 tags: [Linux, 安全]
 date: 2026-09-11
-status: draft
+status: published
 summary: "系统安全性大于业务逻辑：关键目录保护与操作前检查"
 source: "笔记/code_knowledge/Linux.md"
 ---

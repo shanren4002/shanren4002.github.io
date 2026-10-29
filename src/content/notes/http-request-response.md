@@ -4,7 +4,7 @@ slug: http-request-response
 category: "HTTP knowledges"
 tags: [HTTP]
 date: 2026-09-17
-status: draft
+status: published
 summary: "HTTP 请求的方法、URL、Headers、Body 与各类参数速览"
 source: "笔记/HTTP knowledges/HTTP请求、响应.md"
 ---

@@ -4,7 +4,7 @@ slug: fastapi-first-app
 category: "FastAPI"
 tags: [FastAPI, 入门]
 date: 2026-08-27
-status: draft
+status: published
 summary: "FastAPI 环境配置、第一个接口编写与程序启动方式"
 source: "笔记/FastAPI/创建第一个接口和程序启动.md"
 ---

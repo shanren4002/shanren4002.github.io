@@ -4,7 +4,7 @@ slug: langchain-2-1-2-3
 category: "智能客服"
 tags: [LangChain, LLM]
 date: 2026-09-26
-status: draft
+status: published
 summary: "模型初始化统一封装等 LangChain 核心知识点的讲解与代码"
 source: "笔记/FastAPI/智能客服/LangChain 2.1 ~ 2.3.md"
 ---

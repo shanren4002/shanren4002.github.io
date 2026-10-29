@@ -4,7 +4,7 @@ slug: fastapi-path-query-params
 category: "FastAPI"
 tags: [FastAPI]
 date: 2026-08-27
-status: draft
+status: published
 summary: "路径参数的类型规定与查询参数的有无类型两种写法"
 source: "笔记/FastAPI/FastAP路径，查询参数.md"
 ---
