@@ -1,0 +1,18 @@
+# worker/wrangler.toml —— Cloudflare Worker 同源后台（M0 骨架）
+# 部署顺序刚性（全案 §4）：先 wrangler login + 部署本空壳拿 workers.dev 域名，
+# 再注册 GitHub OAuth App（callback 指向本域名），最后回填 secrets。
+
+name = "portfolio-backend"
+main = "src/index.js"
+compatibility_date = "2026-10-29"
+
+# [vars] 仅放非敏感配置；敏感值（CLIENT_ID/CLIENT_SECRET/PAT）一律走
+# `wrangler secret put`，禁止写进本文件（安全红线：零入库）。
+# M0 拿到 workers.dev 域名后回填下方 ALLOWED_ORIGIN。
+[vars]
+ALLOWED_ORIGIN = "https://USERNAME.github.io"
+
+# M2+ 绑定自定义域（同源后台，无 CORS 面）后取消注释并回填：
+# [[routes]]
+# pattern = "api.<your-domain>"
+# custom_domain = true

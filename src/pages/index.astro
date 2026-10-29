@@ -1,0 +1,96 @@
+---
+import Base from '../layouts/Base.astro';
+---
+
+<Base title="首页" description="个人作品集：笔记档案、项目展示与 AI 画廊">
+  <!-- M0 占位：Hero 场景化动效与卡片列表在 M1 内容迁移后补齐 -->
+  <section class="hero">
+    <p class="hero-kicker">PORTFOLIO</p>
+    <h1 class="hero-title">你好，这里是我的作品集</h1>
+    <p class="hero-sub">笔记档案 · 项目展示 · AI 画廊 —— 持续归档中</p>
+    <nav class="hero-nav">
+      <a href="/notes">笔记</a>
+      <a href="/projects">项目</a>
+      <a href="/gallery">画廊</a>
+      <a href="/about">关于</a>
+    </nav>
+  </section>
+
+  <section class="status">
+    <h2>施工进度</h2>
+    <ul>
+      <li>✅ M0 项目骨架：Astro 5 + Pagefind + 双主题 + CI/CD 双门禁</li>
+      <li>⬜ M1 内容迁移：53 篇笔记 → <code>src/content/notes/</code></li>
+      <li>⬜ M2 项目档案 + demo 静态副本</li>
+      <li>⬜ M3 AI 画廊 + 图片管线</li>
+      <li>⬜ M3.5 网页后台上传通道</li>
+      <li>⬜ M4 验收上线</li>
+    </ul>
+  </section>
+</Base>
+
+<style>
+  .hero {
+    padding: var(--sp-6) 0 var(--sp-5);
+    text-align: center;
+  }
+  .hero-kicker {
+    font-family: var(--font-mono);
+    letter-spacing: 0.35em;
+    color: var(--accent-ink);
+    font-size: 0.8rem;
+    margin: 0 0 var(--sp-2);
+  }
+  .hero-title {
+    font-size: clamp(1.8rem, 4vw, 2.6rem);
+    margin: 0 0 var(--sp-3);
+    color: var(--text);
+  }
+  .hero-sub {
+    color: var(--text-2);
+    margin: 0 0 var(--sp-4);
+  }
+  .hero-nav {
+    display: flex;
+    gap: var(--sp-2);
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .hero-nav a {
+    color: var(--accent-ink);
+    text-decoration: none;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: var(--sp-1) var(--sp-3);
+    font-size: 0.95rem;
+  }
+  .hero-nav a:hover {
+    background: var(--surface-2);
+  }
+  .status {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    padding: var(--sp-4);
+  }
+  .status h2 {
+    margin-top: 0;
+    font-size: 1.1rem;
+  }
+  .status ul {
+    margin: 0;
+    padding-left: 1.2em;
+    color: var(--text-2);
+  }
+  .status li {
+    margin: var(--sp-1) 0;
+  }
+  .status code {
+    font-family: var(--font-mono);
+    font-size: 0.85em;
+    background: var(--surface-2);
+    border-radius: 4px;
+    padding: 0 4px;
+  }
+</style>

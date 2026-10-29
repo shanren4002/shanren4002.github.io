@@ -1,0 +1,31 @@
+# —— 依赖与构建产物 ——
+node_modules/
+dist/
+.astro/
+
+# —— 安全红线（AGENTS.md §2.4-6）：零入库三重拦截的第一道 ——
+.env
+.env.*
+!.env.example
+*.db
+*.sqlite3
+
+# —— Python 虚拟环境与缓存 ——
+.venv/
+__pycache__/
+*.pyc
+
+# —— Wrangler 本地状态（不得入库）——
+worker/.wrangler/
+.wrangler/
+
+# —— 系统与编辑器 ——
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/
+*.swp
+
+# —— 日志 ——
+*.log

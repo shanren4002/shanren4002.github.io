@@ -1,0 +1,112 @@
+---
+import '../styles/tokens.css';
+
+interface Props {
+  title: string;
+  description?: string;
+}
+
+const { title, description = '个人 GitHub 作品集：笔记档案 · 项目展示 · AI 画廊' } = Astro.props;
+const year = new Date().getFullYear();
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content={description} />
+    <meta name="generator" content={Astro.generator} />
+    <title>{title}</title>
+    <!-- 防闪烁内联脚本（≈200B）：首帧渲染前定主题——读 localStorage → 回退系统偏好 -->
+    <script is:inline>
+      (function () {
+        var t = null;
+        try { t = localStorage.getItem('theme'); } catch (e) {}
+        if (t !== 'light' && t !== 'dark') {
+          t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        }
+        document.documentElement.setAttribute('data-theme', t);
+      })();
+    </script>
+  </head>
+  <body>
+    <div class="page">
+      <slot />
+      <footer class="footer">
+        <span>© {year} · 用 Astro + GitHub Pages 构建</span>
+        <button id="theme-toggle" type="button" aria-label="切换亮/暗主题" title="切换亮/暗主题">🌞</button>
+      </footer>
+    </div>
+    <!-- 页脚主题切换（≈100B）：手动覆盖 + localStorage 记忆 -->
+    <script>
+      const btn = document.getElementById('theme-toggle');
+      const root = document.documentElement;
+      const sync = () => {
+        if (btn) btn.textContent = root.getAttribute('data-theme') === 'dark' ? '🌙' : '🌞';
+      };
+      sync();
+      btn?.addEventListener('click', () => {
+        const next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+        root.setAttribute('data-theme', next);
+        try { localStorage.setItem('theme', next); } catch (e) {}
+        sync();
+      });
+    </script>
+  </body>
+</html>
+
+<style>
+  /* —— 基础版式（组件级样式随 M1+ 各页面补齐，此处仅全局骨架）—— */
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-sans);
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+  }
+  .page {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: var(--sp-4) var(--sp-3) var(--sp-5);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  .footer {
+    margin-top: auto;
+    padding-top: var(--sp-4);
+    border-top: 1px solid var(--line);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: var(--text-2);
+    font-size: 0.85rem;
+  }
+  #theme-toggle {
+    border: 1px solid var(--line);
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: var(--sp-1) var(--sp-2);
+    font-size: 1rem;
+    cursor: pointer;
+    line-height: 1;
+  }
+  #theme-toggle:hover {
+    background: var(--surface-2);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+  }
+</style>
