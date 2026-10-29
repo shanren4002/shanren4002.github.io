@@ -1,0 +1,199 @@
+---
+import Base from '../../layouts/Base.astro';
+import { getCollection } from 'astro:content';
+
+// 生产环境只展示 published；dev 模式展示全部（草稿带徽章，供本地抽查）
+const all = await getCollection('notes');
+const isDev = import.meta.env.DEV;
+const notes = isDev ? all : all.filter((n) => n.data.status === 'published');
+const sorted = [...notes].sort((a, b) => b.data.date.getTime() - a.data.date.getTime());
+
+// 按分类分组（分类按笔记数降序，多的在前）
+const byCategory = new Map<string, typeof sorted>();
+for (const n of sorted) {
+  const list = byCategory.get(n.data.category) ?? [];
+  list.push(n);
+  byCategory.set(n.data.category, list);
+}
+const categories = [...byCategory.entries()].sort((a, b) => b[1].length - a[1].length);
+
+const fmt = (d: Date) =>
+  d.toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' });
+---
+
+<Base title="笔记" description="学习笔记归档：AI / FastAPI / Python / HTTP / 智能客服">
+  <section class="notes-index">
+    <header class="page-head">
+      <h1>笔记</h1>
+      <p class="head-meta">
+        共 {sorted.length} 篇 · {categories.length} 个分类
+        {isDev && <span class="dev-hint">（dev 预览：含草稿，发布后仅可见 published）</span>}
+      </p>
+    </header>
+
+    {sorted.length === 0 ? (
+      <div class="empty">
+        <p>还没有已发布的笔记。</p>
+        <p class="empty-sub">对 AI 说一句「帮我把这 xxx 上传到我的作品集」，或等本地抽查完成后发布。</p>
+      </div>
+    ) : (
+      <div class="cat-jump">
+        {categories.map(([cat, list]) => (
+          <a href={`#cat-${encodeURIComponent(cat)}`}>{cat} ({list.length})</a>
+        ))}
+      </div>
+    )}
+
+    {categories.map(([cat, list]) => (
+      <section class="cat-section" id={`cat-${encodeURIComponent(cat)}`}>
+        <h2>{cat}<span class="cat-count">{list.length} 篇</span></h2>
+        <div class="note-list" data-pagefind-body>
+          {list.map((n) => (
+            <article class="note-card">
+              <div class="note-meta">
+                <time datetime={n.data.date.toISOString()}>{fmt(n.data.date)}</time>
+                {n.data.status === 'draft' && isDev && <span class="badge-draft">草稿</span>}
+              </div>
+              <h3><a href={`/notes/${n.data.slug}/`}>{n.data.title}</a></h3>
+              <p class="note-summary">{n.data.summary}</p>
+              {n.data.tags.length > 0 && (
+                <div class="tag-row">
+                  {n.data.tags.map((t) => <span class="tag">{t}</span>)}
+                </div>
+              )}
+            </article>
+          ))}
+        </div>
+      </section>
+    ))}
+  </section>
+</Base>
+
+<style>
+  .notes-index {
+    padding: var(--sp-5) 0;
+  }
+  .page-head h1 {
+    margin: 0 0 var(--sp-1);
+    font-size: 1.8rem;
+  }
+  .head-meta {
+    color: var(--text-2);
+    margin: 0 0 var(--sp-4);
+    font-size: 0.9rem;
+  }
+  .dev-hint {
+    color: var(--accent-ink);
+  }
+  .empty {
+    background: var(--surface);
+    border: 1px dashed var(--line);
+    border-radius: var(--radius-lg);
+    padding: var(--sp-5);
+    text-align: center;
+    color: var(--text-2);
+  }
+  .empty-sub {
+    font-size: 0.88rem;
+  }
+  .cat-jump {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-2);
+    margin-bottom: var(--sp-5);
+  }
+  .cat-jump a {
+    font-size: 0.85rem;
+    color: var(--accent-ink);
+    text-decoration: none;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: var(--sp-1) var(--sp-2);
+  }
+  .cat-jump a:hover {
+    background: var(--surface-2);
+  }
+  .cat-section {
+    margin-bottom: var(--sp-5);
+  }
+  .cat-section h2 {
+    display: flex;
+    align-items: baseline;
+    gap: var(--sp-2);
+    font-size: 1.25rem;
+    border-bottom: 2px solid var(--line);
+    padding-bottom: var(--sp-1);
+    margin: 0 0 var(--sp-3);
+  }
+  .cat-count {
+    font-size: 0.8rem;
+    color: var(--text-2);
+    font-weight: 400;
+  }
+  .note-list {
+    display: grid;
+    gap: var(--sp-3);
+  }
+  .note-card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    padding: var(--sp-3) var(--sp-4);
+    transition: transform 160ms ease, box-shadow 160ms ease;
+  }
+  .note-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgb(0 0 0 / 8%);
+  }
+  .note-meta {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-2);
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--text-2);
+    margin-bottom: var(--sp-1);
+  }
+  .badge-draft {
+    font-family: var(--font-sans);
+    background: var(--tag-bg);
+    color: var(--text);
+    border-radius: 4px;
+    padding: 0 6px;
+    font-size: 0.72rem;
+  }
+  .note-card h3 {
+    margin: 0 0 var(--sp-1);
+    font-size: 1.08rem;
+  }
+  .note-card h3 a {
+    color: var(--text);
+    text-decoration: none;
+  }
+  .note-card h3 a:hover {
+    color: var(--accent-ink);
+  }
+  .note-summary {
+    margin: 0 0 var(--sp-2);
+    color: var(--text-2);
+    font-size: 0.92rem;
+  }
+  .tag-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-1);
+  }
+  .tag {
+    font-size: 0.75rem;
+    color: var(--text-2);
+    background: var(--surface-2);
+    border-radius: 4px;
+    padding: 0 6px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .note-card:hover {
+      transform: none;
+    }
+  }
+</style>

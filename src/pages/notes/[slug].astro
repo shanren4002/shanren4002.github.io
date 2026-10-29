@@ -1,0 +1,124 @@
+---
+import Base from '../../layouts/Base.astro';
+import '../../styles/prose.css';
+import { getCollection, render } from 'astro:content';
+
+export async function getStaticPaths() {
+  const all = await getCollection('notes');
+  // 生产只生成 published；dev 生成全部（草稿本地可预览）
+  const notes = import.meta.env.DEV ? all : all.filter((n) => n.data.status === 'published');
+  return notes.map((n) => ({ params: { slug: n.data.slug }, props: { note: n } }));
+}
+
+const { note } = Astro.props;
+const { Content } = await render(note);
+
+const fmt = (d: Date) =>
+  d.toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' });
+---
+
+<Base title={`${note.data.title} · 笔记`} description={note.data.summary}>
+  <article class="note-detail">
+    <nav class="back-nav"><a href="/notes/">← 返回笔记列表</a></nav>
+
+    <header class="note-head">
+      <div class="note-meta">
+        <span class="cat-chip">{note.data.category}</span>
+        <time datetime={note.data.date.toISOString()}>{fmt(note.data.date)}</time>
+        {note.data.status === 'draft' && import.meta.env.DEV && <span class="badge-draft">草稿预览</span>}
+      </div>
+      <h1>{note.data.title}</h1>
+      {note.data.tags.length > 0 && (
+        <div class="tag-row">
+          {note.data.tags.map((t) => <span class="tag">#{t}</span>)}
+        </div>
+      )}
+    </header>
+
+    <div class="prose" data-pagefind-body>
+      <Content />
+    </div>
+
+    <footer class="note-foot">
+      {note.data.source && <p class="source">归档来源：<code>{note.data.source}</code></p>}
+      <p><a href="/notes/">← 返回笔记列表</a></p>
+    </footer>
+  </article>
+</Base>
+
+<style>
+  .note-detail {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: var(--sp-5) 0;
+  }
+  .back-nav {
+    margin-bottom: var(--sp-4);
+    font-size: 0.9rem;
+  }
+  .back-nav a {
+    color: var(--accent-ink);
+    text-decoration: none;
+  }
+  .back-nav a:hover {
+    text-decoration: underline;
+  }
+  .note-head {
+    border-bottom: 2px solid var(--line);
+    padding-bottom: var(--sp-3);
+    margin-bottom: var(--sp-4);
+  }
+  .note-meta {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-2);
+    font-size: 0.85rem;
+    color: var(--text-2);
+    margin-bottom: var(--sp-2);
+  }
+  .cat-chip {
+    background: var(--tag-bg);
+    color: var(--text);
+    border-radius: 4px;
+    padding: 0 var(--sp-1);
+    font-size: 0.8rem;
+  }
+  .badge-draft {
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 0 6px;
+    font-size: 0.75rem;
+  }
+  .note-head h1 {
+    margin: 0 0 var(--sp-2);
+    font-size: 1.7rem;
+    line-height: 1.4;
+  }
+  .tag-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-1);
+  }
+  .tag {
+    font-size: 0.78rem;
+    color: var(--text-2);
+  }
+  .note-foot {
+    margin-top: var(--sp-5);
+    padding-top: var(--sp-3);
+    border-top: 1px solid var(--line);
+    color: var(--text-2);
+    font-size: 0.88rem;
+  }
+  .note-foot a {
+    color: var(--accent-ink);
+  }
+  .source code {
+    font-family: var(--font-mono);
+    font-size: 0.82em;
+    background: var(--surface-2);
+    border-radius: 4px;
+    padding: 0 4px;
+  }
+</style>

@@ -22,10 +22,12 @@ ROOT = Path(__file__).resolve().parent.parent
 SRC = ROOT / "src" / "content"
 PUBLIC_IMAGES = ROOT / "public" / "images"
 
-# 笔记现有 9 类（AGENTS.md 自动归类规则的推荐列表；不在列表内 = 警告不阻断）
+# 笔记分类推荐列表（AGENTS.md 自动归类规则；不在列表内 = 警告不阻断）
+# 2026-10-29：用户批准新增「智能客服」分类（原 FastAPI/智能客服/ 系列 12 篇独立成类）
 RECOMMENDED_CATEGORIES = {
     "AI knowledge", "AI prompt", "AIPERSON", "FastAPI",
     "HTTP knowledges", "Python", "agent ai", "code_knowledge", "后端基础学习",
+    "智能客服",
 }
 
 SLUG_RE = re.compile(r"^[a-z0-9-]+$")
@@ -42,6 +44,13 @@ SECRET_PATTERNS = [
     (re.compile(r"(?i)\b(api[_-]?key|secret[_-]?key|access[_-]?token|password|passwd)\b\s*[:=]\s*['\"]?[A-Za-z0-9/+_\-]{12,}"), "密钥赋值"),
     (re.compile(r"(?i)\bBearer\s+[A-Za-z0-9._\-]{20,}"), "Bearer token"),
 ]
+
+
+def _is_placeholder(value: str) -> bool:
+    """占位符判别：真实密钥几乎必然含数字；纯字母/连字符值（如 my-secret-key、
+    should_be_filtered）是教学示例与测试夹具，不拦截。精确模式（ghp_/sk-/AKIA 等）
+    不受此函数影响，仍全量拦截。"""
+    return not any(ch.isdigit() for ch in value)
 
 MAX_IMAGE_BYTES = 2 * 1024 * 1024  # 2MB 硬限（phase1-eng §2.4-6）
 MAX_SUMMARY_LEN = 120
@@ -196,8 +205,14 @@ def check_secrets(report: Report):
         except OSError:
             continue
         for pat, name in SECRET_PATTERNS:
-            if pat.search(text):
+            for m in pat.finditer(text):
+                # 通用「密钥赋值」模式对占位符放行（精确模式不放行）
+                if name == "密钥赋值":
+                    value = m.group(0).split(":", 1)[-1].split("=", 1)[-1].strip().strip("'\"")
+                    if _is_placeholder(value):
+                        continue
                 report.error(f"{rel}: 疑似敏感信息（{name}）——请移除后重试（安全红线）")
+                break  # 同一文件同一模式报一次即止
 
 
 def check_env_files(report: Report):

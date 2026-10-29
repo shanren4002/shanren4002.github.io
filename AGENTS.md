@@ -91,7 +91,9 @@ python3 scripts/check_content.py  # 同上，CI 门禁①同款
 - [x] GitHub 用户名已确认（**shanren4002**）→ 已替换 `astro.config.mjs` 中 site 与 `worker/wrangler.toml` 中 `ALLOWED_ORIGIN`
 - [x] Cloudflare 账号就绪 → wrangler login 已完成（用户终端执行，OAuth token 存 `C:\Users\Ljk\AppData\Roaming\xdg.config\.wrangler\config\default.toml`）
 - [x] Worker 空壳已部署 → 域名 **`https://portfolio-backend.3506328561.workers.dev`**（版本 dd3124b2，2026-10-29 13:30 UTC；沙箱 DNS 不可达 workers.dev，浏览器可达性待用户验证）
-- [x] 仓库已建（`shanren4002.github.io`，public 空仓）并推送 → Actions 双门禁触发中
-- [ ] GitHub OAuth App 待注册（callback = `https://portfolio-backend.3506328561.workers.dev/api/v1/auth/callback`），Client ID 入 [vars]、Secret 走 `wrangler secret put`（**不落盘**）
-- [ ] 白名单 user id 待提供（M3.5 生效）
-- [ ] PAT 待建：`Contents: write`（必须）+ `Actions: write`（建议），`wrangler secret put` 注入
+- [x] 仓库已建（`shanren4002.github.io`，public 空仓）并推送 → Actions 双门禁触发并全绿 → **站点已上线**（https://shanren4002.github.io）
+- [x] GitHub OAuth App 已注册（callback = `https://portfolio-backend.3506328561.workers.dev/api/v1/auth/callback`），Client ID `Ov23lijqsOF9BX5xnW8S` 已入 [vars]；**Secret 曾意外出现在对话/截图中，已要求用户轮换（旧 secret 从未成功注入，无清理负担）**，新 secret 待用户终端注入
+- [x] 白名单 user id 已取得（**213465035**，已入 `ALLOWED_USERS` vars，M3.5 生效）
+- [x] PAT 已注入：`pnpm exec wrangler secret put GITHUB_PAT --config worker/wrangler.toml`（Contents:write + Actions:write，90 天，仅作品集仓）
+- [x] GITHUB_CLIENT_SECRET 已注入：同上命令（轮换后的新 secret，2026-10-29 深夜完成）
+- [x] **M0 全部完成**：站点上线 + Worker 部署 + 3 vars + 2 secrets 就位 → 进入 M1

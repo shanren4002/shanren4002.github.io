@@ -1,0 +1,192 @@
+/* src/styles/prose.css —— 笔记/文章详情页排版（彩铅笔感，双主题适配）
+ * 供 src/pages/notes/[slug].astro 等详情页使用；全部走 tokens.css 变量，
+ * 亮/暗主题自动切换。代码块由 Shiki 默认深色主题渲染（符合用户硬约束：
+ * 双主题均深色底高可读）。 */
+
+.prose {
+  color: var(--text);
+  font-size: 1rem;
+  line-height: 1.75;
+  word-wrap: break-word;
+}
+
+.prose > *:first-child {
+  margin-top: 0;
+}
+
+/* —— 标题体系 —— */
+.prose h1,
+.prose h2,
+.prose h3,
+.prose h4,
+.prose h5,
+.prose h6 {
+  line-height: 1.4;
+  margin: var(--sp-5) 0 var(--sp-3);
+  font-weight: 600;
+}
+
+.prose h1 { font-size: 1.6rem; }
+.prose h2 {
+  font-size: 1.35rem;
+  padding-bottom: var(--sp-1);
+  border-bottom: 1px solid var(--line);
+}
+.prose h3 { font-size: 1.18rem; }
+.prose h4 { font-size: 1.05rem; }
+.prose h5,
+.prose h6 { font-size: 0.95rem; color: var(--text-2); }
+
+/* —— 段落与行内元素 —— */
+.prose p {
+  margin: var(--sp-3) 0;
+}
+
+.prose a {
+  color: var(--accent-ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+}
+
+.prose a:hover {
+  color: var(--hover);
+}
+
+.prose strong {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.prose em {
+  font-style: italic;
+}
+
+.prose del {
+  color: var(--text-2);
+}
+
+/* —— 行内代码 —— */
+.prose :not(pre) > code {
+  font-family: var(--font-mono);
+  font-size: 0.88em;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 0.1em 0.35em;
+  word-break: break-all;
+}
+
+/* —— 代码块（Shiki 深色主题，双主题下均保持深色底）—— */
+.prose pre {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  line-height: 1.6;
+  border-radius: var(--radius);
+  padding: var(--sp-3) var(--sp-4);
+  overflow-x: auto;
+  margin: var(--sp-4) 0;
+  border: 1px solid var(--line);
+}
+
+.prose pre code {
+  font-family: inherit;
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: inherit;
+  word-break: normal;
+}
+
+/* —— 列表 —— */
+.prose ul,
+.prose ol {
+  margin: var(--sp-3) 0;
+  padding-left: 1.6em;
+}
+
+.prose li {
+  margin: var(--sp-1) 0;
+}
+
+.prose li > ul,
+.prose li > ol {
+  margin: var(--sp-1) 0;
+}
+
+.prose li::marker {
+  color: var(--accent-ink);
+}
+
+.prose input[type="checkbox"] {
+  margin-right: var(--sp-1);
+  accent-color: var(--accent-ink);
+}
+
+/* —— 表格（移动端可横向滚动）—— */
+.prose table {
+  display: block;
+  overflow-x: auto;
+  max-width: 100%;
+  border-collapse: collapse;
+  margin: var(--sp-4) 0;
+  font-size: 0.92rem;
+}
+
+.prose th,
+.prose td {
+  border: 1px solid var(--line);
+  padding: var(--sp-1) var(--sp-2);
+  text-align: left;
+  vertical-align: top;
+}
+
+.prose th {
+  background: var(--surface-2);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.prose tbody tr:nth-child(even) {
+  background: var(--surface);
+}
+
+/* —— 引用 —— */
+.prose blockquote {
+  margin: var(--sp-4) 0;
+  padding: var(--sp-2) var(--sp-4);
+  border-left: 3px solid var(--accent);
+  background: var(--surface);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  color: var(--text-2);
+}
+
+.prose blockquote p {
+  margin: var(--sp-1) 0;
+}
+
+/* —— 分割线与图片 —— */
+.prose hr {
+  border: none;
+  border-top: 1px solid var(--line);
+  margin: var(--sp-5) 0;
+}
+
+.prose img {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  margin: var(--sp-3) 0;
+}
+
+/* —— 键盘键 / 任务列表语法残留的裸文本兼容 —— */
+.prose kbd {
+  font-family: var(--font-mono);
+  font-size: 0.8em;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  padding: 0.1em 0.4em;
+}
