@@ -1,0 +1,12 @@
+# 统一换行符为 LF（CI 构建运行在 ubuntu-latest，避免 CRLF 混入）
+* text=auto eol=lf
+
+# 二进制文件不参与换行符归一化
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
