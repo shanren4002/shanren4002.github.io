@@ -13,7 +13,7 @@
 | 内容契约 | Zod（`src/content.config.ts`）+ `scripts/check_content.py` | 唯一事实源，CI 双门禁 |
 | 部署 | GitHub Pages + Actions 自定义工作流 | 双门禁失败即中止，线上保持上一版本 |
 | 后台 | Cloudflare Worker 同源（`/admin` + `/api/v1/*`） | 无 CORS 面；GitHub OAuth + PAT 写仓库 |
-| 主题 | 彩铅笔感亮/暗双主题（`src/styles/tokens.css`） | 默认跟随系统，页脚切换 + localStorage 记忆 |
+| 主题 | 彩铅笔感亮主题（`src/styles/tokens.css`，全站唯一主题） | 纸感底色 + 手绘气质，无切换零 JS 开销 |
 
 ## 目录结构
 
@@ -23,9 +23,9 @@ portfolio/
 ├── src/
 │   ├── content.config.ts          # Zod 内容契约（唯一事实源）
 │   ├── content/                   # notes/ projects/ gallery.json（AI 只写这里）
-│   ├── layouts/Base.astro         # 防闪烁主题脚本 + 页脚切换
+│   ├── layouts/Base.astro         # 全局骨架（页脚版权行）
 │   ├── pages/                     # index / about（M1+ 扩充列表页）
-│   └── styles/tokens.css          # 双主题设计令牌
+│   └── styles/tokens.css          # 亮主题设计令牌（全站唯一主题）
 ├── public/images/                 # notes/ projects/ gallery/ 图片资产
 ├── scripts/check_content.py       # CI 门禁①：schema + 敏感信息 + 图片体积
 ├── worker/                        # Cloudflare Worker 同源后台（M0 空壳）
@@ -56,8 +56,8 @@ push 到 `main` 触发 `Deploy Pages`：
 
 | 里程碑 | 内容 | 状态 |
 |---|---|---|
-| M0 | 项目骨架：双主题 + CI/CD 双门禁 + Worker 空壳 | 🚧 进行中 |
-| M1 | 内容迁移：53 篇笔记 → `src/content/notes/` | ⬜ |
+| M0 | 项目骨架：亮主题 + CI/CD 双门禁 + Worker 空壳 | ✅ 已完成 |
+| M1 | 内容迁移：53 篇笔记 → `src/content/notes/` | ✅ 已完成（52 篇上线） |
 | M2 | 项目档案 + demo 静态副本 | ⬜ |
 | M3 | AI 画廊 + 图片管线（`optimize_image.py`） | ⬜ |
 | M3.5 | 网页后台上传通道（OAuth + PAT） | ⬜ |

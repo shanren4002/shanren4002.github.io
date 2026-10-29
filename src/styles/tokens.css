@@ -1,10 +1,10 @@
-/* src/styles/tokens.css —— v1.1 彩铅主题初值（phase1-eng §7.1 定稿）
- * 亮/暗双主题均在 V1.0 交付（用户 2026-10-29 决策 A）。
+/* src/styles/tokens.css —— v1.2 彩铅亮主题（phase1-eng §7.1 初值，2026-10-30 移除暗主题）
+ * 用户 2026-10-30 决策：暗主题太丑，全站仅保留亮主题（原双主题为 2026-10-29 决策 A，现作废）。
  * 用户实际勾选若微调，只改本文件一处，组件零改动。
  * 所有色值经 WCAG 对比度公式核算：正文 ≥4.5:1 全部满足；
  * --accent 系彩度较高仅限装饰/大字标题/边框/hover 底，正文链接统一走 --accent-ink。
  */
-:root {                                   /* 亮主题（默认） */
+:root {                                   /* 亮主题（全站唯一主题） */
   --bg:         #F4F1EA;                  /* 暖白纸 */
   --surface:    #FBF9F4;                  /* 卡片面（暖白提亮一档，派生） */
   --surface-2:  #E2D8CC;                  /* 麦秆纸：次级面 */
@@ -17,26 +17,10 @@
   --hl:         #E7E3B4;                  /* 光斑黄：点缀/高亮 */
   --tag-bg:     #C9CB96;                  /* 芥末黄绿：标签底（上压松烟墨 7.4:1） */
   --hover:      #82BAA3;                  /* 嫩青：hover */
-  --code-bg:    #232A31;                  /* 代码块：双主题均深色底高可读（用户硬约束） */
+  --code-bg:    #232A31;                  /* 代码块：浅色纸面上的深色底高可读（用户硬约束） */
   --code-text:  #E8E4DA;                  /* （11.4:1） */
   --font-sans: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", system-ui, sans-serif;
   --font-mono: "JetBrains Mono", "SF Mono", Consolas, "Courier New", monospace;
   --sp-1: 4px; --sp-2: 8px; --sp-3: 16px; --sp-4: 24px; --sp-5: 40px; --sp-6: 64px;  /* 4px 基数 */
   --radius: 10px; --radius-lg: 16px;
-}
-[data-theme="dark"] {                     /* 暗主题（底色按 PRD 用深海蓝 #354961 压深派生） */
-  --bg:         #2D3E52;                  /* 深海蓝压深派生（PRD 定值） */
-  --surface:    #354961;                  /* 深海蓝：卡片面（上压米白纸 7.7:1） */
-  --surface-2:  #26313D;                  /* 比 bg 深一档：凹陷/次级面（11.1:1） */
-  --line:       #46586F;                  /* 深海蓝派生：分隔线 */
-  --text:       #F0EAE3;                  /* 米白纸（on --bg = 9.2:1） */
-  --text-2:     #A9B5CA;                  /* 雾蓝（5.3:1） */
-  --accent:     #9CC3CE;                  /* 飞鸟青（5.8:1，可直接做链接） */
-  --accent-ink: #9CC3CE;
-  --accent-2:   #E7E3B4;                  /* 光斑黄（8.4:1） */
-  --hl:         #E7E3B4;
-  --tag-bg:     #46586F;                  /* 派生标签底（上压米白纸 6.1:1） */
-  --hover:      #82BAA3;
-  --code-bg:    #1F2733;
-  --code-text:  #E8E4DA;                  /* （11.9:1） */
 }

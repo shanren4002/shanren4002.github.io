@@ -1,7 +1,7 @@
-/* src/styles/prose.css —— 笔记/文章详情页排版（彩铅笔感，双主题适配）
+/* src/styles/prose.css —— 笔记/文章详情页排版（彩铅笔感亮主题）
  * 供 src/pages/notes/[slug].astro 等详情页使用；全部走 tokens.css 变量，
- * 亮/暗主题自动切换。代码块由 Shiki 默认深色主题渲染（符合用户硬约束：
- * 双主题均深色底高可读）。 */
+ * 全站唯一亮主题（用户 2026-10-30 决策移除暗主题）。代码块由 Shiki 默认深色
+ * 主题渲染（浅色纸面上的深色代码块，对比度高、可读性好）。 */
 
 .prose {
   color: var(--text);
@@ -77,7 +77,7 @@
   word-break: break-all;
 }
 
-/* —— 代码块（Shiki 深色主题，双主题下均保持深色底）—— */
+/* —— 代码块（Shiki 深色主题，浅色纸面上保持深色底）—— */
 .prose pre {
   font-family: var(--font-mono);
   font-size: 0.85rem;

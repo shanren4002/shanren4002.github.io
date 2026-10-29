@@ -8,7 +8,7 @@
 
 - **形态**：静态作品集站（Astro 5 构建 → GitHub Pages 托管，Pagefind 站内搜索）
 - **内容**：`src/content/notes`（笔记）、`src/content/projects`（项目档案）、`src/content/gallery.json`（AI 画廊）
-- **主题**：彩铅笔感亮/暗双主题（`src/styles/tokens.css`，默认跟随系统，页脚切换）
+- **主题**：彩铅笔感亮主题（`src/styles/tokens.css`，全站唯一主题；用户 2026-10-30 决策移除暗主题）
 - **两条上传通道**：① 对 AI 说话（主通道，commit 前缀 `content(notes|projects|gallery):`）② 网页后台自助上传（辅通道，Worker 生成 commit，前缀 `content(backend):`）——git log 即两条通道的事实源
 - **部署**：push 到 `main` 触发 `.github/workflows/deploy.yml`（双门禁：内容预检 + 构建校验）
 
