@@ -1,96 +1,574 @@
 ---
 import Base from '../layouts/Base.astro';
+import { getCollection } from 'astro:content';
+
+// 首页统计口径与列表页一致：dev 含草稿，生产仅 published
+const all = await getCollection('notes');
+const isDev = import.meta.env.DEV;
+const visible = isDev ? all : all.filter((n) => n.data.status === 'published');
+const noteCount = visible.length;
+const catCount = new Set(visible.map((n) => n.data.category)).size;
 ---
 
-<Base title="首页" description="个人作品集：笔记档案、项目展示与 AI 画廊">
-  <!-- M0 占位：Hero 场景化动效与卡片列表在 M1 内容迁移后补齐 -->
+<Base title="首页" description="个人作品集：笔记档案、项目展示与 AI 画廊" wide>
+  <!-- ① 首屏：超大标题 + 彩铅涂鸦（makemepulse 式一句话一面墙） -->
   <section class="hero">
-    <p class="hero-kicker">PORTFOLIO</p>
-    <h1 class="hero-title">你好，这里是我的作品集</h1>
-    <p class="hero-sub">笔记档案 · 项目展示 · AI 画廊 —— 持续归档中</p>
-    <nav class="hero-nav">
-      <a href="/notes">笔记</a>
-      <a href="/projects">项目</a>
-      <a href="/gallery">画廊</a>
-      <a href="/about">关于</a>
-    </nav>
+    <div class="hero-top">
+      <span class="kicker">PORTFOLIO · 个人作品集</span>
+      <span class="kicker">EST. 2026</span>
+    </div>
+
+    <div class="hero-center">
+      <h1 class="hero-title">
+        <span class="line line-1">你好，这里是我的</span>
+        <span class="line line-2"><span class="mark">作品集</span>。</span>
+      </h1>
+      <p class="hero-sub">笔记档案 · 项目展示 · AI 画廊 —— 持续归档中</p>
+    </div>
+
+    <div class="hero-bottom">
+      <a class="about-link" href="/about/">关于这个站 →</a>
+      <span class="scroll-cue" aria-hidden="true">
+        往下滚
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+          <path d="M12 4v15M5 12l7 7 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+      </span>
+    </div>
+
+    <!-- 装饰涂鸦：随鼠标轻微视差，reduced-motion / 触屏自动静止 -->
+    <svg class="doodle d-star" width="44" height="44" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M12 0c.7 7.2 5.2 11.7 12 12-6.8.3-11.3 4.8-12 12-.7-7.2-5.2-11.7-12-12C6.8 11.7 11.3 7.2 12 0z" fill="#46648C" />
+    </svg>
+    <svg class="doodle d-squiggle" width="110" height="14" viewBox="0 0 110 14" aria-hidden="true">
+      <path d="M2 8 Q 15 2, 28 8 T 54 8 T 80 7 T 108 8" fill="none" stroke="#82BAA3" stroke-width="3" stroke-linecap="round" />
+    </svg>
+    <svg class="doodle d-dots" width="46" height="14" viewBox="0 0 46 14" aria-hidden="true">
+      <circle cx="7" cy="7" r="5" fill="#B78483" />
+      <circle cx="23" cy="7" r="3.5" fill="#B78483" opacity=".6" />
+      <circle cx="36" cy="7" r="2.5" fill="#B78483" opacity=".35" />
+    </svg>
   </section>
 
-  <section class="status">
-    <h2>施工进度</h2>
-    <ul>
-      <li>✅ M0 项目骨架：Astro 5 + Pagefind + 亮主题 + CI/CD 双门禁</li>
-      <li>✅ M1 内容迁移：52 篇笔记已发布（10 个分类）</li>
-      <li>⬜ M2 项目档案 + demo 静态副本</li>
-      <li>⬜ M3 AI 画廊 + 图片管线</li>
-      <li>⬜ M3.5 网页后台上传通道</li>
-      <li>⬜ M4 验收上线</li>
-    </ul>
+  <!-- ② 滚动横带：墨色斜切 + 彩铅双色交替（makemepulse 式跑马灯） -->
+  <div class="band-wrap" aria-hidden="true">
+    <div class="band">
+      <div class="band-track">
+        <span>笔记 · 项目 · 画廊 · 持续归档中 ·&nbsp;</span>
+        <span>笔记 · 项目 · 画廊 · 持续归档中 ·&nbsp;</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ③ 大主张：全屏一句宣言 -->
+  <section class="section statement-section">
+    <div class="section-inner">
+      <p class="statement reveal">把学过的东西，<br />都<span class="mark">留在这里</span>。</p>
+      <p class="statement-sub reveal">一句话归档 · 双通道更新 · 全部公开</p>
+    </div>
+  </section>
+
+  <!-- ④ 三入口：编辑式大列表（hover 彩铅横扫） -->
+  <section class="section entries-section">
+    <div class="section-inner">
+      <p class="section-label reveal">里面有什么</p>
+      <nav class="entries">
+        <a class="entry reveal" href="/notes/">
+          <span class="entry-index">01</span>
+          <span class="entry-body">
+            <span class="entry-title">笔记档案</span>
+            <span class="entry-meta">{noteCount} 篇 · {catCount} 个分类 · AI / FastAPI / Python / 智能客服</span>
+          </span>
+          <span class="entry-arrow" aria-hidden="true">→</span>
+        </a>
+        <a class="entry reveal" href="/projects/">
+          <span class="entry-index">02</span>
+          <span class="entry-body">
+            <span class="entry-title">项目展示</span>
+            <span class="entry-meta">9 个 · M2 归档中 · FastAPI / 全栈 / 工具</span>
+          </span>
+          <span class="entry-arrow" aria-hidden="true">→</span>
+        </a>
+        <a class="entry reveal" href="/gallery/">
+          <span class="entry-index">03</span>
+          <span class="entry-body">
+            <span class="entry-title">AI 画廊</span>
+            <span class="entry-meta">M3 筹备中 · 彩铅 × makemepulse</span>
+          </span>
+          <span class="entry-arrow" aria-hidden="true">→</span>
+        </a>
+      </nav>
+    </div>
+  </section>
+
+  <!-- ⑤ 施工进度：里程碑时间线 -->
+  <section class="section journey-section">
+    <div class="section-inner">
+      <p class="section-label reveal">这个站是怎么长出来的</p>
+      <ol class="journey reveal">
+        <li class="ms done">
+          <span class="ms-dot" aria-hidden="true"></span>
+          <span class="ms-name">M0 骨架上线</span>
+        </li>
+        <li class="ms done">
+          <span class="ms-dot" aria-hidden="true"></span>
+          <span class="ms-name">M1 · {noteCount} 篇笔记</span>
+        </li>
+        <li class="ms current">
+          <span class="ms-dot" aria-hidden="true"></span>
+          <span class="ms-name">M2 项目档案</span>
+          <span class="ms-tag">进行中</span>
+        </li>
+        <li class="ms">
+          <span class="ms-dot" aria-hidden="true"></span>
+          <span class="ms-name">M3 画廊 + 图片管线</span>
+        </li>
+        <li class="ms">
+          <span class="ms-dot" aria-hidden="true"></span>
+          <span class="ms-name">M3.5 后台上传</span>
+        </li>
+        <li class="ms">
+          <span class="ms-dot" aria-hidden="true"></span>
+          <span class="ms-name">M4 验收上线</span>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ⑥ 收尾 CTA：核心价值主张做成超大引言 -->
+  <section class="section cta-section">
+    <div class="section-inner">
+      <p class="section-label reveal">归档方式</p>
+      <p class="cta-quote reveal">「帮我把这 <span class="mark">xxx</span><br />上传到我的作品集」</p>
+      <p class="cta-sub reveal">对 AI 说这一句，归档就完成了（主通道）· 网页后台上传为辅通道（M3.5 上线）</p>
+    </div>
   </section>
 </Base>
 
-<style>
-  .hero {
-    padding: var(--sp-6) 0 var(--sp-5);
-    text-align: center;
+<script>
+  document.documentElement.classList.add('js');
+
+  // 滚动渐显：进入视口一次后即取消观察
+  const reveals = document.querySelectorAll('.reveal');
+  if ('IntersectionObserver' in window) {
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('in-view');
+            io.unobserve(entry.target);
+          }
+        }
+      },
+      { threshold: 0.15, rootMargin: '0px 0px -6% 0px' },
+    );
+    reveals.forEach((el) => io.observe(el));
+  } else {
+    reveals.forEach((el) => el.classList.add('in-view'));
   }
-  .hero-kicker {
+
+  // 首屏涂鸦鼠标视差：rAF 节流；reduced-motion 与触屏跳过
+  const hero = document.querySelector<HTMLElement>('.hero');
+  const calm = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const fine = window.matchMedia('(pointer: fine)').matches;
+  if (hero && fine && !calm) {
+    let frame = 0;
+    hero.addEventListener('mousemove', (event) => {
+      if (frame) return;
+      frame = requestAnimationFrame(() => {
+        const rect = hero.getBoundingClientRect();
+        const x = (event.clientX - rect.left) / rect.width - 0.5;
+        const y = (event.clientY - rect.top) / rect.height - 0.5;
+        hero.style.setProperty('--mx', x.toFixed(3));
+        hero.style.setProperty('--my', y.toFixed(3));
+        frame = 0;
+      });
+    });
+  }
+</script>
+
+<style>
+  /* —— ① 首屏 —— */
+  .hero {
+    position: relative;
+    min-height: 100vh;
+    min-height: 100svh;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: var(--sp-4) clamp(20px, 5vw, 64px);
+    overflow: hidden;
+  }
+  .hero-top {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--sp-2);
+  }
+  .kicker {
     font-family: var(--font-mono);
-    letter-spacing: 0.35em;
+    font-size: 12px;
+    letter-spacing: 0.22em;
     color: var(--accent-ink);
-    font-size: 0.8rem;
-    margin: 0 0 var(--sp-2);
+  }
+  .hero-center {
+    padding: var(--sp-5) 0;
   }
   .hero-title {
-    font-size: clamp(1.8rem, 4vw, 2.6rem);
-    margin: 0 0 var(--sp-3);
+    margin: 0;
+    font-size: clamp(2.7rem, 8.4vw, 5.4rem);
+    font-weight: 600;
+    line-height: 1.16;
+    letter-spacing: 0.01em;
     color: var(--text);
   }
+  .line {
+    display: block;
+  }
+  /* 手绘彩铅下划线（内联 SVG，无外部请求） */
+  .line-1::after {
+    content: '';
+    display: block;
+    height: 12px;
+    margin-top: 0.08em;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 240 12'%3E%3Cpath d='M2 8 Q 22 3, 44 7 T 88 7 T 132 6 T 176 7 T 238 7' fill='none' stroke='%23B78483' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat left center / 100% 12px;
+    opacity: 0.8;
+  }
   .hero-sub {
+    margin: var(--sp-4) 0 0;
+    font-size: clamp(0.95rem, 1.6vw, 1.15rem);
     color: var(--text-2);
-    margin: 0 0 var(--sp-4);
   }
-  .hero-nav {
+  .hero-bottom {
     display: flex;
-    gap: var(--sp-2);
-    justify-content: center;
-    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: var(--sp-3);
   }
-  .hero-nav a {
+  .about-link {
+    font-size: 0.85rem;
     color: var(--accent-ink);
     text-decoration: none;
-    border: 1px solid var(--line);
-    background: var(--surface);
-    border-radius: var(--radius);
-    padding: var(--sp-1) var(--sp-3);
-    font-size: 0.95rem;
+    border-bottom: 1px solid transparent;
   }
-  .hero-nav a:hover {
-    background: var(--surface-2);
+  .about-link:hover {
+    border-bottom-color: var(--accent-ink);
   }
-  .status {
-    background: var(--surface);
-    border: 1px solid var(--line);
-    border-radius: var(--radius-lg);
-    padding: var(--sp-4);
-  }
-  .status h2 {
-    margin-top: 0;
-    font-size: 1.1rem;
-  }
-  .status ul {
-    margin: 0;
-    padding-left: 1.2em;
+  .scroll-cue {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    letter-spacing: 0.14em;
     color: var(--text-2);
   }
-  .status li {
-    margin: var(--sp-1) 0;
+  .scroll-cue svg {
+    animation: bob 1.6s ease-in-out infinite;
   }
-  .status code {
+  @keyframes bob {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(5px);
+    }
+  }
+
+  /* 涂鸦定位 + 视差系数 */
+  .doodle {
+    position: absolute;
+    pointer-events: none;
+    transition: transform 0.35s ease-out;
+  }
+  .d-star {
+    top: 18%;
+    right: 9%;
+    transform: translate(calc(var(--mx, 0) * 20px), calc(var(--my, 0) * 20px));
+  }
+  .d-squiggle {
+    bottom: 21%;
+    right: 13%;
+    transform: translate(calc(var(--mx, 0) * -26px), calc(var(--my, 0) * -26px));
+  }
+  .d-dots {
+    bottom: 27%;
+    left: 7%;
+    transform: translate(calc(var(--mx, 0) * 14px), calc(var(--my, 0) * 14px));
+  }
+
+  /* —— ② 滚动横带 —— */
+  .band-wrap {
+    overflow: hidden;
+    padding: clamp(26px, 5vh, 44px) 0;
+  }
+  .band {
+    width: 112vw;
+    margin-left: -6vw;
+    background: var(--text);
+    transform: rotate(-1.6deg);
+    padding: clamp(12px, 2vh, 18px) 0;
+  }
+  .band-track {
+    display: flex;
+    width: max-content;
+    animation: marquee 26s linear infinite;
+  }
+  .band-track span {
+    font-size: clamp(1.3rem, 2.6vw, 2rem);
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: var(--bg);
+    white-space: nowrap;
+  }
+  .band-track span:nth-child(2) {
+    color: var(--hl);
+  }
+  @keyframes marquee {
+    to {
+      transform: translateX(-50%);
+    }
+  }
+
+  /* —— 通用 section —— */
+  .section {
+    padding: clamp(72px, 13vh, 128px) 0;
+  }
+  .section-inner {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 0 clamp(20px, 5vw, 64px);
+  }
+  .section-label {
+    margin: 0 0 var(--sp-4);
     font-family: var(--font-mono);
-    font-size: 0.85em;
-    background: var(--surface-2);
+    font-size: 12px;
+    letter-spacing: 0.24em;
+    color: var(--text-2);
+  }
+
+  /* marker 高亮（光斑黄马克笔） */
+  .mark {
+    position: relative;
+    z-index: 0;
+    display: inline-block;
+    padding: 0 0.08em;
+  }
+  .mark::before {
+    content: '';
+    position: absolute;
+    inset: 12% -0.04em 8%;
+    background: var(--hl);
+    transform: rotate(-1deg);
+    border-radius: 0.14em;
+    z-index: -1;
+  }
+
+  /* —— ③ 大主张 —— */
+  .statement {
+    margin: 0;
+    font-size: clamp(2rem, 5.6vw, 3.4rem);
+    font-weight: 600;
+    line-height: 1.4;
+    color: var(--text);
+  }
+  .statement-sub {
+    margin: var(--sp-4) 0 0;
+    font-size: 0.95rem;
+    color: var(--text-2);
+  }
+
+  /* —— ④ 三入口 —— */
+  .entries {
+    border-top: 1px solid var(--line);
+  }
+  .entry {
+    position: relative;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: clamp(16px, 4vw, 48px);
+    padding: clamp(20px, 3.4vw, 34px) clamp(6px, 2vw, 20px);
+    border-bottom: 1px solid var(--line);
+    text-decoration: none;
+    color: var(--text);
+    overflow: hidden;
+  }
+  .entry::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--hl);
+    transform: scaleY(0);
+    transform-origin: bottom;
+    transition: transform 0.22s ease;
+  }
+  .entry:hover::before,
+  .entry:focus-visible::before {
+    transform: scaleY(1);
+  }
+  .entry > * {
+    position: relative;
+    z-index: 1;
+  }
+  .entry:focus-visible {
+    outline: 2px solid var(--accent-ink);
+    outline-offset: -2px;
+  }
+  .entry-index {
+    font-family: var(--font-mono);
+    font-size: clamp(1.1rem, 2.4vw, 1.5rem);
+    color: var(--accent-ink);
+  }
+  .entry-title {
+    display: block;
+    font-size: clamp(1.5rem, 3.6vw, 2.3rem);
+    font-weight: 600;
+    line-height: 1.2;
+  }
+  .entry-meta {
+    display: block;
+    margin-top: 6px;
+    font-size: 0.9rem;
+    color: var(--text-2);
+  }
+  .entry-arrow {
+    font-size: clamp(1.4rem, 3vw, 2rem);
+    color: var(--accent-ink);
+    transition: transform 0.2s ease;
+  }
+  .entry:hover .entry-arrow,
+  .entry:focus-visible .entry-arrow {
+    transform: translateX(8px);
+  }
+
+  /* —— ⑤ 时间线 —— */
+  .journey {
+    --jgap: clamp(22px, 3.4vw, 44px);
+    list-style: none;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--jgap);
+    margin: 0;
+    padding: 0;
+  }
+  .ms {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    flex: 1 1 150px;
+    min-width: 130px;
+  }
+  .ms + .ms::before {
+    content: '';
+    position: absolute;
+    top: 6px;
+    left: calc(-1 * var(--jgap));
+    width: var(--jgap);
+    height: 2px;
+    background: var(--line);
+  }
+  .ms-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 2px solid var(--line);
+    background: transparent;
+  }
+  .ms.done .ms-dot {
+    background: var(--accent-ink);
+    border-color: var(--accent-ink);
+  }
+  .ms.current .ms-dot {
+    border-color: var(--accent-ink);
+    animation: pulse 1.8s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%,
+    100% {
+      box-shadow: 0 0 0 0 rgb(70 100 140 / 35%);
+    }
+    50% {
+      box-shadow: 0 0 0 6px rgb(70 100 140 / 0%);
+    }
+  }
+  .ms-name {
+    font-size: 0.92rem;
+    color: var(--text-2);
+  }
+  .ms.done .ms-name {
+    color: var(--text);
+    font-weight: 500;
+  }
+  .ms.current .ms-name {
+    color: var(--accent-ink);
+    font-weight: 600;
+  }
+  .ms-tag {
+    align-self: flex-start;
+    font-size: 0.72rem;
+    background: var(--tag-bg);
+    color: var(--text);
     border-radius: 4px;
-    padding: 0 4px;
+    padding: 1px 6px;
+  }
+
+  /* —— ⑥ CTA —— */
+  .cta-quote {
+    margin: 0;
+    font-size: clamp(1.9rem, 4.6vw, 3.2rem);
+    font-weight: 600;
+    line-height: 1.45;
+    color: var(--text);
+  }
+  .cta-sub {
+    margin: var(--sp-4) 0 0;
+    font-size: 0.95rem;
+    color: var(--text-2);
+  }
+
+  /* —— 滚动渐显（无 JS 时全部可见）—— */
+  .js .reveal {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  .js .reveal.in-view {
+    opacity: 1;
+    transform: none;
+    transition: opacity 0.5s ease, transform 0.5s ease;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .js .reveal {
+      opacity: 1;
+      transform: none;
+    }
+    .band-track,
+    .scroll-cue svg,
+    .ms.current .ms-dot {
+      animation: none;
+    }
+    .doodle,
+    .entry,
+    .entry-arrow {
+      transition: none;
+    }
+  }
+
+  @media (max-width: 560px) {
+    .d-star {
+      top: 12%;
+      right: 6%;
+    }
+    .d-squiggle,
+    .d-dots {
+      display: none;
+    }
+    .hero-bottom {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: var(--sp-2);
+    }
   }
 </style>

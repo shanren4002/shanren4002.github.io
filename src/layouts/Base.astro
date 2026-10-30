@@ -4,10 +4,23 @@ import '../styles/tokens.css';
 interface Props {
   title: string;
   description?: string;
+  wide?: boolean;
 }
 
-const { title, description = '个人 GitHub 作品集：笔记档案 · 项目展示 · AI 画廊' } = Astro.props;
+const { title, description = '个人 GitHub 作品集：笔记档案 · 项目展示 · AI 画廊', wide = false } = Astro.props;
 const year = new Date().getFullYear();
+
+// 全局导航：首页精确匹配，其余按路径前缀高亮（aria-current）
+const path = Astro.url.pathname;
+const navItems = [
+  { href: '/', label: '作品集' },
+  { href: '/notes/', label: '笔记' },
+  { href: '/projects/', label: '项目' },
+  { href: '/gallery/', label: '画廊' },
+  { href: '/about/', label: '关于' },
+];
+const isActive = (href: string) =>
+  href === '/' ? path === '/' : path.startsWith(href);
 ---
 
 <!doctype html>
@@ -20,7 +33,23 @@ const year = new Date().getFullYear();
     <title>{title}</title>
   </head>
   <body>
-    <div class="page">
+    {!wide && (
+      <header class="site-head">
+        <div class="site-head-inner">
+          <a class="wordmark" href="/">
+            <span class="wm-dot" aria-hidden="true"></span>作品集
+          </a>
+          <nav class="site-nav" aria-label="主导航">
+            {navItems.map((item) => (
+              <a href={item.href} aria-current={isActive(item.href) ? 'page' : undefined}>
+                {item.label}
+              </a>
+            ))}
+          </nav>
+        </div>
+      </header>
+    )}
+    <div class:list={['page', { 'page-wide': wide }]}>
       <slot />
       <footer class="footer">
         <span>© {year} · 用 Astro + GitHub Pages 构建</span>
@@ -46,14 +75,77 @@ const year = new Date().getFullYear();
     font-family: var(--font-sans);
     line-height: 1.7;
     -webkit-font-smoothing: antialiased;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
   }
   .page {
+    flex: 1;
     max-width: 1080px;
     margin: 0 auto;
     padding: var(--sp-4) var(--sp-3) var(--sp-5);
-    min-height: 100vh;
     display: flex;
     flex-direction: column;
+  }
+  /* —— 全局吸顶导航（wide 沉浸页自带导航，不渲染）—— */
+  .site-head {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: var(--bg);
+    border-bottom: 1px solid var(--line);
+  }
+  .site-head-inner {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: var(--sp-2) var(--sp-3);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--sp-3);
+  }
+  .wordmark {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    font-size: 1rem;
+    color: var(--text);
+    text-decoration: none;
+  }
+  .wm-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--accent-ink);
+  }
+  .site-nav {
+    display: flex;
+    gap: clamp(12px, 2.4vw, 24px);
+  }
+  .site-nav a {
+    font-size: 0.9rem;
+    color: var(--text-2);
+    text-decoration: none;
+    padding: 2px 0;
+    border-bottom: 2px solid transparent;
+  }
+  .site-nav a:hover {
+    color: var(--accent-ink);
+  }
+  .site-nav a[aria-current='page'] {
+    color: var(--accent-ink);
+    font-weight: 500;
+    border-bottom-color: var(--hl);
+  }
+  .page-wide {
+    max-width: none;
+    padding: 0;
+  }
+  .page-wide .footer {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: var(--sp-4) var(--sp-3) var(--sp-5);
   }
   .footer {
     margin-top: auto;
