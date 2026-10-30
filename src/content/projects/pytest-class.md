@@ -4,7 +4,7 @@ slug: pytest-class
 category: 工程实践
 tags: [Python, pytest, 测试]
 date: 2026-08-24
-status: draft
+status: published
 summary: pytest 最小教学仓库：用可运行的最小例子讲清 fixture、conftest 与测试组织，附 pytest-html 执行报告。
 tech_stack: [Python, pytest]
 demo_type: static

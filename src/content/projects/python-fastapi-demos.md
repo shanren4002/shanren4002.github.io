@@ -4,7 +4,7 @@ slug: python-fastapi-demos
 category: 后端服务
 tags: [FastAPI, Python, uvicorn, 学习]
 date: 2026-08-29
-status: draft
+status: published
 summary: FastAPI 最小示例集：异步端点、请求体、表单、文件上传、路径参数与配置管理，一组可运行文件覆盖核心用法。
 tech_stack: [FastAPI, Python, uvicorn]
 demo_type: none

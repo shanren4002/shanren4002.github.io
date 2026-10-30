@@ -4,7 +4,7 @@ slug: campus-agent
 category: 智能体
 tags: [FastAPI, LangChain, DeepSeek, 毕业设计]
 date: 2026-10-29
-status: draft
+status: published
 summary: 毕业设计：校园场景 AI 对话助手，五个 Phase 从单轮对话演进到长期记忆与双路分发，143 项测试全通过。
 tech_stack: [FastAPI, LangChain, DeepSeek, SQLite, JavaScript]
 demo_type: none

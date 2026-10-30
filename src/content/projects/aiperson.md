@@ -4,7 +4,7 @@ slug: aiperson
 category: 智能体
 tags: [AI, LangGraph, 智能体, CLI]
 date: 2026-09-15
-status: draft
+status: published
 summary: 基于 LangGraph 的本地 CLI AI 陪伴助手：多轮对话、Function Calling 工具调用、定时提醒与 AI 决策的主动消息推送。
 tech_stack: [Python, LangGraph, LangChain, DeepSeek, SQLite]
 demo_type: none

@@ -4,7 +4,7 @@ slug: person-ide
 category: 工具
 tags: [Python, CLI, DeepSeek, SiliconFlow]
 date: 2026-10-17
-status: draft
+status: published
 summary: 本地 Python CLI 知识库分析工具：三策略问答路由（全量/摘要/自适应）+ 低置信度澄清追问，产出可离线打开的静态 HTML 报告。
 tech_stack: [Python, DeepSeek, SiliconFlow, CLI]
 demo_type: static

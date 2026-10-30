@@ -4,7 +4,7 @@ slug: ai-digital-card
 category: RAG 应用
 tags: [RAG, Streamlit, 个人名片]
 date: 2026-08-05
-status: draft
+status: published
 summary: Streamlit 个人知识库展示网站：YAML 驱动的经历荣誉展示，加基于 Chroma 向量检索的「AI 分身」对话。
 tech_stack: [Python, Streamlit, LangChain, Chroma, HuggingFace, DeepSeek]
 demo_type: none

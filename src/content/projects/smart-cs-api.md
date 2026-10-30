@@ -4,7 +4,7 @@ slug: smart-cs-api
 category: 后端服务
 tags: [FastAPI, RAG, 智能客服]
 date: 2026-10-01
-status: draft
+status: published
 summary: FastAPI 分层架构的智能客服后端：api / cache / db / llm / rag / services 多层分离，Chroma 检索 + 完整测试。
 tech_stack: [FastAPI, Chroma, Python, pytest]
 demo_type: none

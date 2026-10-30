@@ -4,7 +4,7 @@ slug: universal-rag
 category: RAG 应用
 tags: [RAG, 全栈, FastAPI]
 date: 2026-06-30
-status: draft
+status: published
 summary: 知识与风格分离的通用 RAG 问答系统：多知识库隔离、Skill 机制控制回答风格，FastAPI + 原生前端 SPA。
 tech_stack: [FastAPI, Python, JavaScript, SQLite, RAG]
 demo_type: none

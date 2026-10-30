@@ -4,7 +4,7 @@ slug: aimvp
 category: AI 产品
 tags: [AI 产品, FSM, Next.js, 复盘]
 date: 2026-08-21
-status: draft
+status: published
 summary: 规则驱动的 AI 事件复盘产品：七阶段有限状态机引导用户把一次具体事件重构为可保存的认知资产。
 tech_stack: [Next.js, React, TypeScript, Tailwind CSS, SQLite, DeepSeek, Zod]
 demo_type: none
