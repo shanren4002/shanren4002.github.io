@@ -30,6 +30,11 @@ RECOMMENDED_CATEGORIES = {
     "智能客服",
 }
 
+# 项目分类推荐列表（2026-10-30 M2 建档时确立；不在列表内 = 警告不阻断）
+PROJECT_RECOMMENDED_CATEGORIES = {
+    "智能体", "RAG 应用", "AI 产品", "后端服务", "工具", "工程实践",
+}
+
 SLUG_RE = re.compile(r"^[a-z0-9-]+$")
 STATUS_VALUES = {"draft", "published", "archived"}
 DEMO_TYPES = {"static", "external", "none"}
@@ -151,6 +156,9 @@ def check_collection(report: Report, collection: str, required: list[str]):
             if cat and cat not in RECOMMENDED_CATEGORIES:
                 report.warn(f"{rel}: 新分类 '{cat}'（不在 9 类推荐列表，请确认是否保留）")
         if collection == "projects":
+            cat = fm.get("category")
+            if cat and cat not in PROJECT_RECOMMENDED_CATEGORIES:
+                report.warn(f"{rel}: 新项目分类 '{cat}'（不在推荐列表，请确认是否保留）")
             dt = fm.get("demo_type", "none")
             if dt not in DEMO_TYPES:
                 report.error(f"{rel}: demo_type '{dt}' 非法（须为 {sorted(DEMO_TYPES)}）")
@@ -235,7 +243,7 @@ def check_image_sizes(report: Report):
 def main() -> int:
     report = Report()
     check_collection(report, "notes", ["title", "slug", "date", "status", "summary", "category"])
-    check_collection(report, "projects", ["title", "slug", "date", "status", "summary"])
+    check_collection(report, "projects", ["title", "slug", "date", "status", "summary", "category"])
     check_gallery(report)
     check_env_files(report)
     check_secrets(report)

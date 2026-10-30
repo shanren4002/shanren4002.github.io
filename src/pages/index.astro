@@ -8,6 +8,12 @@ const isDev = import.meta.env.DEV;
 const visible = isDev ? all : all.filter((n) => n.data.status === 'published');
 const noteCount = visible.length;
 const catCount = new Set(visible.map((n) => n.data.category)).size;
+
+// 项目计数（与项目列表页同口径）
+const allProjects = await getCollection('projects');
+const visibleProjects = isDev ? allProjects : allProjects.filter((p) => p.data.status === 'published');
+const projectCount = visibleProjects.length;
+const projectCatCount = new Set(visibleProjects.map((p) => p.data.category)).size;
 ---
 
 <Base title="首页" description="个人作品集：笔记档案、项目展示与 AI 画廊" wide>
@@ -85,7 +91,7 @@ const catCount = new Set(visible.map((n) => n.data.category)).size;
           <span class="entry-index">02</span>
           <span class="entry-body">
             <span class="entry-title">项目展示</span>
-            <span class="entry-meta">9 个 · M2 归档中 · FastAPI / 全栈 / 工具</span>
+            <span class="entry-meta">{projectCount} 个 · {projectCatCount} 个分类 · 智能体 / 全栈 / 工具</span>
           </span>
           <span class="entry-arrow" aria-hidden="true">→</span>
         </a>

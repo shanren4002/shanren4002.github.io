@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>文档问答报告</title>
+  <style>
+    :root { font-family: "Segoe UI", "Microsoft YaHei", sans-serif; color: #202a35; background: #f3f6fa; }
+    body { margin: 0; padding: 36px 16px; }
+    main { max-width: 1080px; margin: 0 auto; }
+    h1 { margin: 0 0 8px; font-size: 1.8rem; }
+    h2 { font-size: 1.15rem; margin: 0 0 14px; }
+    h3 { font-size: 1rem; margin: 0 0 8px; }
+    .subheading { color: #596675; margin: 0 0 22px; }
+    .panel, .strategy-card { background: #fff; border: 1px solid #dfe6ee; border-radius: 13px; padding: 22px; margin-bottom: 16px; box-shadow: 0 8px 28px #1c35500b; }
+    .run-info { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) minmax(0, 1fr); gap: 14px; }
+    .run-info p { margin: 5px 0 0; overflow-wrap: anywhere; }
+    .label { color: #647184; font-size: .84rem; }
+    .metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-bottom: 18px; }
+    .metric { background: #edf4fc; border-radius: 10px; padding: 14px; }
+    .metric strong { display: block; margin-top: 4px; font-size: 1.2rem; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: left; padding: 11px 9px; border-bottom: 1px solid #e8edf3; }
+    thead th { color: #596675; font-size: .88rem; }
+    .strategy-card > header { display: flex; flex-wrap: wrap; align-items: center; gap: 9px; margin-bottom: 18px; }
+    .strategy-name { font-size: 1.2rem; font-weight: 700; margin-right: auto; }
+    .pill { border-radius: 999px; background: #edf4fc; color: #245988; padding: 6px 11px; font-size: .88rem; }
+    .answer { overflow-wrap: anywhere; }
+    .markdown-body { line-height: 1.75; }
+    .markdown-body > :first-child { margin-top: 0; }
+    .markdown-body h1, .markdown-body h2, .markdown-body h3, .markdown-body h4 { margin: 1.1em 0 .5em; }
+    .markdown-body p, .markdown-body ul, .markdown-body ol, .markdown-body blockquote { margin: .7em 0; }
+    .markdown-body li { margin: .25em 0; }
+    .markdown-body pre { overflow-x: auto; padding: 14px; border-radius: 8px; background: #17212f; color: #edf2f7; }
+    .markdown-body code { font-family: Consolas, "Cascadia Code", monospace; }
+    .markdown-body :not(pre) > code { border-radius: 4px; background: #eef1f5; padding: .12em .35em; }
+    .markdown-body table { display: block; overflow-x: auto; }
+    .markdown-body th, .markdown-body td { border: 1px solid #dfe6ee; }
+    .markdown-body blockquote { border-left: 3px solid #9ab9dc; margin-left: 0; padding-left: 14px; color: #596675; }
+    .detail { border-top: 1px solid #e8edf3; margin-top: 18px; padding-top: 16px; }
+    .detail p { line-height: 1.6; }
+    .notice, .failure { border-radius: 8px; padding: 12px 14px; background: #fff5e5; color: #79530b; }
+    .failure { background: #fff1f1; color: #922b2b; }
+    @media (max-width: 680px) { .run-info { grid-template-columns: 1fr; } .panel, .strategy-card { padding: 17px; } .table-wrap { overflow-x: auto; } table { min-width: 640px; } }
+  </style>
+</head>
+<body>
+<main>
+  <h1>文档问答报告</h1>
+  <p class="subheading">策略结果与资源指标</p>
+  <section class="panel run-info">
+    <div><span class="label">文档</span><p>notes.md</p></div>
+    <div><span class="label">问题</span><p>类别</p></div>
+    <div><span class="label">生成时间</span><p>2026-10-18 09:46:03 中国标准时间</p></div>
+  </section>
+  <section class="panel">
+    <h2>Token 与准确度</h2>
+    <div class="metrics">
+      <div class="metric"><span class="label">Token 用量</span><strong>尚未采集</strong></div>
+      <div class="metric"><span class="label">准确度</span><strong>待评估</strong></div>
+    </div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>策略</th><th>输入 Token</th><th>输出 Token</th><th>总 Token</th><th>准确度</th></tr></thead>
+      <tbody><tr><th>纯全量</th><td>未采集</td><td>未采集</td><td>未采集</td><td>待评估</td></tr><tr><th>纯总结</th><td>未采集</td><td>未采集</td><td>未采集</td><td>待评估</td></tr></tbody>
+    </table></div>
+  </section>
+  <section>
+    <h2>策略结果</h2>
+    <article class="strategy-card"><header><span class="strategy-name">纯全量</span><span class="pill">实际上下文：全量读取</span><span class="pill">意图置信度：不适用</span></header><h2>答案</h2><div class="answer markdown-body"><p>文档中讲解的是 Python 函数参数的<strong>类别</strong>，共列出以下 7 类：</p>
+<p><strong>四大基础类别：</strong></p>
+<ol>
+<li>位置参数（Positional Arguments）</li>
+<li>关键字参数（Keyword Arguments）</li>
+<li>默认参数（Default Arguments）</li>
+<li>可变参数（<code>*args</code> 和 <code>**kwargs</code>）</li>
+</ol>
+<p><strong>进阶类别（Python 3 新增）：</strong>
+5. 仅位置参数（Positional-only，Python 3.8+，用 <code>/</code> 标记）
+6. 仅关键字参数（Keyword-only，用 <code>*</code> 标记）
+7. 完整参数顺序（终极版，如 <code>def func(pos1, pos2, /, normal, *, kw_only)</code>）</p>
+<p>标准参数顺序为：位置参数 → 默认参数 → <code>*args</code> → 仅关键字参数 → <code>**kwargs</code>。</p>
+</div></article><article class="strategy-card"><header><span class="strategy-name">纯总结</span><span class="pill">实际上下文：总结</span><span class="pill">意图置信度：不适用</span></header><h2>答案</h2><div class="answer markdown-body"><p>文档中讲解的 Python 函数参数类别包括：位置参数、关键字参数、默认参数、可变参数（<em>args 与 **kwargs），以及 Python 3.8+ 的仅位置参数（/）和仅关键字参数（</em>）。</p>
+</div></article>
+  </section>
+</main>
+</body>
+</html>

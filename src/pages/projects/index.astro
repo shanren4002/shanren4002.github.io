@@ -1,25 +1,340 @@
 ---
 import Base from '../../layouts/Base.astro';
+import { getCollection } from 'astro:content';
+
+// 生产环境只展示 published；dev 模式展示全部（草稿带徽章，供本地抽查）
+const all = await getCollection('projects');
+const isDev = import.meta.env.DEV;
+const projects = isDev ? all : all.filter((p) => p.data.status === 'published');
+const sorted = [...projects].sort((a, b) => b.data.date.getTime() - a.data.date.getTime());
+
+// 按分类分组（分类按项目数降序，多的在前）
+const byCategory = new Map<string, typeof sorted>();
+for (const p of sorted) {
+  const list = byCategory.get(p.data.category) ?? [];
+  list.push(p);
+  byCategory.set(p.data.category, list);
+}
+const categories = [...byCategory.entries()].sort((a, b) => b[1].length - a[1].length);
+
+const fmt = (d: Date) =>
+  d.toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' });
+const idx = (i: number) => String(i + 1).padStart(2, '0');
 ---
 
-<Base title="项目" description="项目档案展示（M2 建设中）">
-  <section class="placeholder">
-    <h1>项目</h1>
-    <div class="empty">
-      <p>项目档案正在整理中（M2 里程碑）。</p>
-      <p class="empty-sub">将对 AI 说「帮我把这个项目上传到我的作品集」完成归档——含技术栈、说明与可运行的 demo。</p>
-    </div>
+<Base title="项目" description="项目档案：智能体 / RAG 应用 / 后端服务 / 工具 / 工程实践">
+  <section class="projects-index">
+    <header class="page-head">
+      <p class="head-kicker">ARCHIVE · 项目归档</p>
+      <h1 class="head-title"><span class="hl">项目</span></h1>
+      <p class="head-meta">
+        <span class="stat-num">{sorted.length}</span> 个 · <span class="stat-num">{categories.length}</span> 个分类
+        {isDev && <span class="dev-hint">（dev 预览：含草稿，发布后仅可见 published）</span>}
+      </p>
+    </header>
+
+    {sorted.length === 0 ? (
+      <div class="empty">
+        <p>还没有已发布的项目。</p>
+        <p class="empty-sub">对 AI 说一句「帮我把这个项目上传到我的作品集」，或等本地抽查完成后发布。</p>
+      </div>
+    ) : (
+      <div class="cat-jump">
+        {categories.map(([cat, list], i) => (
+          <a href={`#cat-${encodeURIComponent(cat)}`}>
+            <span class="jump-index">{idx(i)}</span>{cat}
+            <span class="jump-count">{list.length}</span>
+          </a>
+        ))}
+      </div>
+    )}
+
+    {categories.map(([cat, list], i) => (
+      <section class="cat-section" id={`cat-${encodeURIComponent(cat)}`}>
+        <h2 class="cat-head">
+          <span class="cat-index">{idx(i)}</span>
+          <span class="cat-name">{cat}</span>
+          <span class="cat-count">{list.length} 个</span>
+        </h2>
+        <div class="project-list" data-pagefind-body>
+          {list.map((p) => (
+            <article class:list={['project-card', { featured: p.data.featured }]}>
+              <div class="project-meta">
+                <time datetime={p.data.date.toISOString()}>{fmt(p.data.date)}</time>
+                {p.data.featured && <span class="badge-featured">精选</span>}
+                {p.data.demo_type !== 'none' && <span class="badge-demo">有 Demo</span>}
+                {p.data.status === 'draft' && isDev && <span class="badge-draft">草稿</span>}
+              </div>
+              <h3><a href={`/projects/${p.data.slug}/`}>{p.data.title}</a></h3>
+              <p class="project-summary">{p.data.summary}</p>
+              {p.data.tech_stack.length > 0 && (
+                <div class="tech-row">
+                  {p.data.tech_stack.map((t) => <span class="tech">{t}</span>)}
+                </div>
+              )}
+              {p.data.tags.length > 0 && (
+                <div class="tag-row">
+                  {p.data.tags.map((t) => <span class="tag">#{t}</span>)}
+                </div>
+              )}
+            </article>
+          ))}
+        </div>
+      </section>
+    ))}
   </section>
 </Base>
 
 <style>
-  .placeholder {
+  .projects-index {
     padding: var(--sp-5) 0;
   }
-  .placeholder h1 {
-    font-size: 1.8rem;
-    margin: 0 0 var(--sp-4);
+
+  /* —— 页头：编辑式大标题 + 大数字统计（与笔记列表同一语言）—— */
+  .page-head {
+    margin-bottom: var(--sp-5);
   }
+  .head-kicker {
+    margin: 0 0 var(--sp-2);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 0.24em;
+    color: var(--accent-ink);
+  }
+  .head-title {
+    margin: 0;
+    font-size: clamp(2.6rem, 7vw, 4.2rem);
+    font-weight: 600;
+    line-height: 1.1;
+  }
+  .hl {
+    position: relative;
+    z-index: 0;
+    display: inline-block;
+    padding: 0 0.1em;
+  }
+  .hl::before {
+    content: '';
+    position: absolute;
+    inset: 14% -0.04em 10%;
+    background: var(--hl);
+    transform: rotate(-1deg);
+    border-radius: 0.14em;
+    z-index: -1;
+  }
+  .head-meta {
+    margin: var(--sp-3) 0 0;
+    font-size: 1rem;
+    color: var(--text-2);
+  }
+  .stat-num {
+    font-family: var(--font-mono);
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--accent-ink);
+    padding: 0 2px;
+  }
+  .dev-hint {
+    margin-left: var(--sp-2);
+    font-size: 0.85rem;
+    color: var(--accent-ink);
+  }
+
+  /* —— 分类跳转：编号索引 —— */
+  .cat-jump {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-2);
+    margin-bottom: var(--sp-6);
+    padding-bottom: var(--sp-4);
+    border-bottom: 1px solid var(--line);
+  }
+  .cat-jump a {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 6px;
+    font-size: 0.85rem;
+    color: var(--text);
+    text-decoration: none;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: var(--sp-1) var(--sp-2);
+    transition: border-color 150ms ease, color 150ms ease;
+  }
+  .cat-jump a:hover {
+    border-color: var(--accent-ink);
+    color: var(--accent-ink);
+  }
+  .jump-index {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--accent-ink);
+  }
+  .jump-count {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--text-2);
+  }
+
+  /* —— 分类节头 —— */
+  .cat-section {
+    margin-bottom: var(--sp-6);
+  }
+  .cat-head {
+    display: flex;
+    align-items: baseline;
+    gap: var(--sp-2);
+    margin: 0 0 var(--sp-4);
+    padding-bottom: var(--sp-2);
+    border-bottom: 2px solid var(--line);
+  }
+  .cat-index {
+    font-family: var(--font-mono);
+    font-size: 0.9rem;
+    color: var(--accent-ink);
+  }
+  .cat-name {
+    font-size: clamp(1.5rem, 3.4vw, 2.1rem);
+    font-weight: 600;
+    line-height: 1.2;
+  }
+  .cat-count {
+    margin-left: auto;
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    color: var(--text-2);
+  }
+
+  /* —— 杂志网格：featured 大卡跨两列 —— */
+  .project-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: var(--sp-3);
+  }
+  .project-card {
+    position: relative;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    padding: var(--sp-3) var(--sp-4);
+    overflow: hidden;
+    transition: transform 160ms ease, border-color 160ms ease;
+  }
+  /* hover 彩铅顶条（与笔记卡片同一语言） */
+  .project-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--hl);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 180ms ease;
+  }
+  .project-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--accent-ink);
+  }
+  .project-card:hover::before {
+    transform: scaleX(1);
+  }
+  .project-meta {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-2);
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--text-2);
+    margin-bottom: var(--sp-1);
+  }
+  .badge-featured {
+    font-family: var(--font-sans);
+    background: var(--tag-bg);
+    color: var(--text);
+    border-radius: 4px;
+    padding: 0 6px;
+    font-size: 0.72rem;
+  }
+  .badge-demo {
+    font-family: var(--font-sans);
+    background: var(--hl);
+    color: var(--text);
+    border-radius: 4px;
+    padding: 0 6px;
+    font-size: 0.72rem;
+  }
+  .badge-draft {
+    font-family: var(--font-sans);
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 0 6px;
+    font-size: 0.72rem;
+  }
+  .project-card h3 {
+    margin: 0 0 var(--sp-1);
+    font-size: 1.08rem;
+    line-height: 1.4;
+  }
+  .project-card h3 a {
+    color: var(--text);
+    text-decoration: none;
+  }
+  .project-card:hover h3 a {
+    color: var(--accent-ink);
+  }
+  .project-summary {
+    margin: 0 0 var(--sp-2);
+    color: var(--text-2);
+    font-size: 0.92rem;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .tech-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-1);
+    margin-bottom: var(--sp-1);
+  }
+  .tech {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--accent-ink);
+    border: 1px solid var(--line);
+    background: var(--surface-2);
+    border-radius: 4px;
+    padding: 0 6px;
+  }
+  .tag-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-1);
+  }
+  .tag {
+    font-size: 0.75rem;
+    color: var(--text-2);
+  }
+
+  /* featured 大卡：跨两列 + 更大标题 + 三行摘要 */
+  .project-card.featured h3 {
+    font-size: clamp(1.3rem, 2.2vw, 1.6rem);
+  }
+  .project-card.featured .project-summary {
+    -webkit-line-clamp: 3;
+    font-size: 0.98rem;
+  }
+  @media (min-width: 720px) {
+    .project-card.featured {
+      grid-column: span 2;
+      padding: var(--sp-4);
+    }
+  }
+
   .empty {
     background: var(--surface);
     border: 1px dashed var(--line);
@@ -30,5 +345,17 @@ import Base from '../../layouts/Base.astro';
   }
   .empty-sub {
     font-size: 0.88rem;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .project-card:hover {
+      transform: none;
+    }
+    .project-card::before {
+      transition: none;
+    }
+    .cat-jump a {
+      transition: none;
+    }
   }
 </style>

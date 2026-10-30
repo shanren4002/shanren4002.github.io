@@ -1,0 +1,223 @@
+---
+import Base from '../../layouts/Base.astro';
+import '../../styles/prose.css';
+import { getCollection, render } from 'astro:content';
+
+export async function getStaticPaths() {
+  const all = await getCollection('projects');
+  // 生产只生成 published；dev 生成全部（草稿本地可预览）
+  const projects = import.meta.env.DEV ? all : all.filter((p) => p.data.status === 'published');
+  return projects.map((p) => ({ params: { slug: p.data.slug }, props: { project: p } }));
+}
+
+const { project } = Astro.props;
+const { Content } = await render(project);
+const { data } = project;
+
+const fmt = (d: Date) =>
+  d.toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' });
+
+// demo 链接语义：static → 站内静态副本；external → 外链新窗口
+const demoLabel = data.demo_type === 'static' ? '查看 Demo（站内副本）' : '访问 Demo';
+---
+
+<Base title={`${data.title} · 项目`} description={data.summary}>
+  <article class="project-detail">
+    <nav class="back-nav"><a href="/projects/">← 返回项目列表</a></nav>
+
+    <header class="project-head">
+      <div class="project-meta">
+        <span class="cat-chip">{data.category}</span>
+        <time datetime={data.date.toISOString()}>{fmt(data.date)}</time>
+        {data.updated && <span class="updated">更新于 {fmt(data.updated)}</span>}
+        {data.featured && <span class="badge-featured">精选</span>}
+        {data.status === 'draft' && import.meta.env.DEV && <span class="badge-draft">草稿预览</span>}
+      </div>
+      <h1>{data.title}</h1>
+      <p class="project-summary">{data.summary}</p>
+
+      {data.tech_stack.length > 0 && (
+        <div class="tech-row">
+          {data.tech_stack.map((t) => <span class="tech">{t}</span>)}
+        </div>
+      )}
+
+      {(data.repo_url || data.demo_url) && (
+        <div class="action-row">
+          {data.repo_url && (
+            <a class="action" href={data.repo_url} target="_blank" rel="noopener">
+              源码仓库 <span aria-hidden="true">↗</span>
+            </a>
+          )}
+          {data.demo_url && data.demo_type === 'static' && (
+            <a class="action action-primary" href={data.demo_url}>
+              {demoLabel} <span aria-hidden="true">→</span>
+            </a>
+          )}
+          {data.demo_url && data.demo_type === 'external' && (
+            <a class="action action-primary" href={data.demo_url} target="_blank" rel="noopener">
+              {demoLabel} <span aria-hidden="true">↗</span>
+            </a>
+          )}
+        </div>
+      )}
+
+      {data.tags.length > 0 && (
+        <div class="tag-row">
+          {data.tags.map((t) => <span class="tag">#{t}</span>)}
+        </div>
+      )}
+    </header>
+
+    <div class="prose" data-pagefind-body>
+      <Content />
+    </div>
+
+    <footer class="project-foot">
+      {data.source && <p class="source">归档来源：<code>{data.source}</code></p>}
+      <p><a href="/projects/">← 返回项目列表</a></p>
+    </footer>
+  </article>
+</Base>
+
+<style>
+  .project-detail {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: var(--sp-5) 0;
+  }
+  .back-nav {
+    margin-bottom: var(--sp-4);
+    font-size: 0.9rem;
+  }
+  .back-nav a {
+    color: var(--accent-ink);
+    text-decoration: none;
+  }
+  .back-nav a:hover {
+    text-decoration: underline;
+  }
+  .project-head {
+    border-bottom: 2px solid var(--line);
+    padding-bottom: var(--sp-3);
+    margin-bottom: var(--sp-4);
+  }
+  .project-meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--sp-2);
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    color: var(--text-2);
+    margin-bottom: var(--sp-2);
+  }
+  .cat-chip {
+    font-family: var(--font-sans);
+    background: var(--tag-bg);
+    color: var(--text);
+    border-radius: 4px;
+    padding: 0 var(--sp-1);
+    font-size: 0.8rem;
+  }
+  .updated {
+    font-size: 0.78rem;
+  }
+  .badge-featured {
+    font-family: var(--font-sans);
+    background: var(--tag-bg);
+    color: var(--text);
+    border-radius: 4px;
+    padding: 0 6px;
+    font-size: 0.72rem;
+  }
+  .badge-draft {
+    font-family: var(--font-sans);
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 0 6px;
+    font-size: 0.75rem;
+  }
+  .project-head h1 {
+    margin: 0 0 var(--sp-2);
+    font-size: clamp(1.5rem, 4vw, 2rem);
+    line-height: 1.35;
+  }
+  .project-summary {
+    margin: 0 0 var(--sp-3);
+    color: var(--text-2);
+    font-size: 1rem;
+  }
+  .tech-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-1);
+    margin-bottom: var(--sp-3);
+  }
+  .tech {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--accent-ink);
+    border: 1px solid var(--line);
+    background: var(--surface-2);
+    border-radius: 4px;
+    padding: 0 6px;
+  }
+  .action-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-2);
+    margin-bottom: var(--sp-3);
+  }
+  .action {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.9rem;
+    color: var(--accent-ink);
+    text-decoration: none;
+    border: 1px solid var(--accent-ink);
+    border-radius: var(--radius);
+    padding: var(--sp-1) var(--sp-3);
+    transition: background-color 150ms ease, color 150ms ease;
+  }
+  .action:hover {
+    background: var(--accent-ink);
+    color: var(--surface);
+  }
+  .action-primary {
+    background: var(--accent-ink);
+    color: var(--surface);
+  }
+  .action-primary:hover {
+    background: var(--text);
+    border-color: var(--text);
+  }
+  .tag-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-1);
+  }
+  .tag {
+    font-size: 0.78rem;
+    color: var(--text-2);
+  }
+  .project-foot {
+    margin-top: var(--sp-5);
+    padding-top: var(--sp-3);
+    border-top: 1px solid var(--line);
+    color: var(--text-2);
+    font-size: 0.88rem;
+  }
+  .project-foot a {
+    color: var(--accent-ink);
+  }
+  .source code {
+    font-family: var(--font-mono);
+    font-size: 0.82em;
+    background: var(--surface-2);
+    border-radius: 4px;
+    padding: 0 4px;
+  }
+</style>

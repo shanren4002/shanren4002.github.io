@@ -27,6 +27,7 @@ const projects = defineCollection({
   loader: glob({ base: './src/content/projects', pattern: '**/*.md' }),
   schema: z.object({
     ...baseSchema,
+    category: z.string(),                         // 项目分类（列表页分组，同 notes 宽松 string）
     repo_url: z.string().url().optional(),
     demo_type: z.enum(['static', 'external', 'none']).default('none'),
     demo_url: z.string().optional(),              // static→站内路径；external→外链

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PytestClass · 测试报告示例</title>
+<style>
+  :root {
+    --bg: #F4F1EA; --surface: #FBF9F4; --surface-2: #E2D8CC;
+    --text: #2C3635; --text-2: #4A525A; --accent-ink: #46648C;
+    --hl: #E7E3B4; --hover: #82BAA3;
+    --font-sans: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", system-ui, sans-serif;
+    --font-mono: "JetBrains Mono", "SF Mono", Consolas, "Courier New", monospace;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font-sans); line-height: 1.7; min-height: 100vh; }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 48px 24px 80px; }
+  .back { display: inline-flex; align-items: center; gap: 6px; color: var(--accent-ink); text-decoration: none; font-size: 14px; margin-bottom: 32px; border-bottom: 1px solid transparent; }
+  .back:hover { border-bottom-color: var(--accent-ink); }
+  .kicker { font-family: var(--font-mono); font-size: 13px; letter-spacing: .12em; color: var(--text-2); text-transform: uppercase; margin-bottom: 8px; }
+  h1 { font-size: clamp(1.7rem, 4.5vw, 2.3rem); line-height: 1.25; margin-bottom: 12px; }
+  .mark { background: linear-gradient(transparent 62%, var(--hl) 62%); padding: 0 2px; }
+  .lede { color: var(--text-2); font-size: 15px; max-width: 56ch; margin-bottom: 40px; }
+  .card { display: block; background: var(--surface); border: 1px solid var(--surface-2); border-radius: 12px; padding: 22px 24px; margin-bottom: 16px; text-decoration: none; color: inherit; transition: transform .18s ease, box-shadow .18s ease; }
+  .card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(44,54,53,.10); }
+  .card .tag { display: inline-block; font-family: var(--font-mono); font-size: 12px; background: var(--hl); border-radius: 999px; padding: 2px 10px; margin-bottom: 10px; }
+  .card h2 { font-size: 18px; margin-bottom: 6px; }
+  .card p { font-size: 14px; color: var(--text-2); }
+  .card .go { display: inline-block; margin-top: 12px; font-size: 14px; color: var(--accent-ink); font-weight: 600; }
+  .card:hover .go { color: var(--hover); }
+  footer { margin-top: 48px; font-size: 13px; color: var(--text-2); border-top: 1px solid var(--surface-2); padding-top: 16px; }
+  @media (prefers-reduced-motion: reduce) { .card { transition: none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="/projects/pytest-class/">← 返回项目档案</a>
+  <div class="kicker">PytestClass · Demo</div>
+  <h1>测试<span class="mark">报告</span>示例</h1>
+  <p class="lede">这是 PytestClass 仓库执行 pytest 后由 pytest-html 生成的报告副本，展示用例通过情况、失败详情与运行环境等标准信息。</p>
+
+  <a class="card" href="./report.html">
+    <span class="tag">pytest-html</span>
+    <h2>pytest 执行报告</h2>
+    <p>包含测试概览、用例结果、失败 Traceback 与运行环境信息，是 pytest 项目最常用的一种结果呈现方式。</p>
+    <span class="go">打开报告 →</span>
+  </a>
+
+  <footer>静态副本 · 原文件位于项目根目录 report.html</footer>
+</div>
+</body>
+</html>
