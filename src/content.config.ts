@@ -45,6 +45,8 @@ const gallery = defineCollection({
       title: z.string().optional(),
       date: z.coerce.date(),
       status: z.enum(['draft', 'published', 'archived']).default('draft'),
+      series: z.string().optional(),              // 系列归属（画廊分组维度，全案 F-06）
+      prompt: z.string().optional(),              // 提示词（可选展示，全案 F-06）
     })),
   }),
 });

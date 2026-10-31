@@ -1,25 +1,248 @@
 ---
 import Base from '../../layouts/Base.astro';
+import { getCollection } from 'astro:content';
+
+// 画廊数据：gallery.json 单文件集合；dev 含草稿，生产仅 published
+const gallery = await getCollection('gallery');
+const raw = gallery[0]?.data.items ?? [];
+const isDev = import.meta.env.DEV;
+const visible = isDev ? raw : raw.filter((it) => it.status === 'published');
+const sorted = [...visible].sort((a, b) => b.date.getTime() - a.date.getTime());
+
+// 系列分组（全案 F-06：按系列/时间网格）；仅当 ≥2 个不同系列时才渲染节头
+const bySeries = new Map<string, typeof sorted>();
+for (const it of sorted) {
+  const key = it.series ?? '未收录系列';
+  const list = bySeries.get(key) ?? [];
+  list.push(it);
+  bySeries.set(key, list);
+}
+const groups = [...bySeries.entries()].sort(
+  (a, b) => b[1][0].date.getTime() - a[1][0].date.getTime(),
+);
+const showSeriesHeads = groups.length >= 2;
+const seriesCount = new Set(sorted.map((it) => it.series).filter(Boolean)).size;
+
+const fmt = (d: Date) =>
+  d.toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' });
+const thumbOf = (src: string) => src.replace(/\.webp$/, '-thumb.webp');
 ---
 
-<Base title="画廊" description="AI 绘画作品画廊（M3 建设中）">
-  <section class="placeholder">
-    <h1>画廊</h1>
-    <div class="empty">
-      <p>AI 绘画画廊正在筹备中（M3 里程碑）。</p>
-      <p class="empty-sub">首批画作将在图片管线上线后入库——对 AI 说「帮我把这张画上传到画廊」即可归档。</p>
-    </div>
+<Base title="画廊" description="AI 绘画作品画廊：系列网格与灯箱浏览">
+  <section class="gallery-index">
+    <header class="page-head">
+      <p class="head-kicker">GALLERY · AI 绘画</p>
+      <h1 class="head-title"><span class="hl">画廊</span></h1>
+      <p class="head-meta">
+        <span class="stat-num">{sorted.length}</span> 张
+        {seriesCount > 0 && <> · <span class="stat-num">{seriesCount}</span> 个系列</>}
+        {isDev && raw.length > visible.length && <span class="dev-hint">（dev 预览：含草稿）</span>}
+      </p>
+    </header>
+
+    {sorted.length === 0 ? (
+      <div class="empty">
+        <p>画廊内容筹备中。</p>
+        <p class="empty-sub">对 AI 说一句「帮我把这张画上传到画廊」即可归档——图片会自动转 WebP、压到长边 1920 并生成缩略图。</p>
+      </div>
+    ) : (
+      groups.map(([series, list]) => (
+        <section class="series-section">
+          {showSeriesHeads && (
+            <h2 class="series-head">
+              <span class="series-name">{series}</span>
+              <span class="series-count">{list.length} 张</span>
+            </h2>
+          )}
+          <div class="gallery-grid" data-pagefind-body>
+            {list.map((it, i) => (
+              <button
+                class="art-card"
+                data-full={`/images/gallery/${it.src}`}
+                data-title={it.title ?? ''}
+                data-date={fmt(it.date)}
+                data-series={it.series ?? ''}
+                data-prompt={it.prompt ?? ''}
+                aria-label={`查看大图：${it.title ?? it.slug}`}
+              >
+                <img
+                  src={`/images/gallery/${thumbOf(it.src)}`}
+                  data-full={`/images/gallery/${it.src}`}
+                  alt={it.title ?? it.slug}
+                  loading="lazy"
+                  decoding="async"
+                  width="640"
+                  height="480"
+                />
+                <figcaption class="art-meta">
+                  <span class="art-title">{it.title ?? it.slug}</span>
+                  <span class="art-date">
+                    {fmt(it.date)}
+                    {!showSeriesHeads && it.series && ` · ${it.series}`}
+                    {it.status === 'draft' && isDev && ' · 草稿'}
+                  </span>
+                </figcaption>
+              </button>
+            ))}
+          </div>
+        </section>
+      ))
+    )}
   </section>
+
+  {/* 灯箱：默认隐藏，无 JS 时不渲染交互也不报错 */}
+  <div id="lightbox" class="lightbox" hidden>
+    <div class="lb-backdrop" data-close></div>
+    <figure class="lb-panel" role="dialog" aria-modal="true" aria-label="画廊大图">
+      <button class="lb-close" id="lb-close" aria-label="关闭" data-close>✕</button>
+      <img id="lb-img" class="lb-img" src="" alt="" />
+      <figcaption class="lb-caption">
+        <div class="lb-row">
+          <strong id="lb-title" class="lb-title"></strong>
+          <span id="lb-counter" class="lb-counter"></span>
+        </div>
+        <div id="lb-meta" class="lb-meta"></div>
+        <p id="lb-prompt" class="lb-prompt" hidden></p>
+      </figcaption>
+      <button class="lb-nav lb-prev" id="lb-prev" aria-label="上一张">←</button>
+      <button class="lb-nav lb-next" id="lb-next" aria-label="下一张">→</button>
+    </figure>
+  </div>
 </Base>
 
 <style>
-  .placeholder {
+  .gallery-index {
     padding: var(--sp-5) 0;
   }
-  .placeholder h1 {
-    font-size: 1.8rem;
-    margin: 0 0 var(--sp-4);
+
+  /* —— 页头：与笔记/项目列表同一编辑式语言 —— */
+  .page-head {
+    margin-bottom: var(--sp-5);
   }
+  .head-kicker {
+    margin: 0 0 var(--sp-2);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 0.24em;
+    color: var(--accent-ink);
+  }
+  .head-title {
+    margin: 0;
+    font-size: clamp(2.6rem, 7vw, 4.2rem);
+    font-weight: 600;
+    line-height: 1.1;
+  }
+  .hl {
+    position: relative;
+    z-index: 0;
+    display: inline-block;
+    padding: 0 0.1em;
+  }
+  .hl::before {
+    content: '';
+    position: absolute;
+    inset: 14% -0.04em 10%;
+    background: var(--hl);
+    transform: rotate(-1deg);
+    border-radius: 0.14em;
+    z-index: -1;
+  }
+  .head-meta {
+    margin: var(--sp-3) 0 0;
+    font-size: 1rem;
+    color: var(--text-2);
+  }
+  .stat-num {
+    font-family: var(--font-mono);
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--accent-ink);
+    padding: 0 2px;
+  }
+  .dev-hint {
+    margin-left: var(--sp-2);
+    font-size: 0.85rem;
+    color: var(--accent-ink);
+  }
+
+  /* —— 系列节头 —— */
+  .series-section {
+    margin-bottom: var(--sp-5);
+  }
+  .series-head {
+    display: flex;
+    align-items: baseline;
+    gap: var(--sp-2);
+    margin: 0 0 var(--sp-4);
+    padding-bottom: var(--sp-2);
+    border-bottom: 2px solid var(--line);
+  }
+  .series-name {
+    font-size: clamp(1.3rem, 3vw, 1.8rem);
+    font-weight: 600;
+    line-height: 1.2;
+  }
+  .series-count {
+    margin-left: auto;
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    color: var(--text-2);
+  }
+
+  /* —— masonry 网格：保留画作原始比例，不裁切 —— */
+  .gallery-grid {
+    columns: 3;
+    column-gap: var(--sp-3);
+  }
+  @media (max-width: 960px) {
+    .gallery-grid { columns: 2; }
+  }
+  @media (max-width: 600px) {
+    .gallery-grid { columns: 1; }
+  }
+  .art-card {
+    display: block;
+    width: 100%;
+    break-inside: avoid;
+    margin: 0 0 var(--sp-3);
+    padding: 0;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    background: var(--surface);
+    overflow: hidden;
+    cursor: zoom-in;
+    text-align: left;
+    font: inherit;
+    color: inherit;
+    transition: transform 160ms ease, border-color 160ms ease;
+  }
+  .art-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--accent-ink);
+  }
+  .art-card img {
+    display: block;
+    width: 100%;
+    height: auto;
+    background: var(--surface-2);
+  }
+  .art-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: var(--sp-2) var(--sp-3);
+  }
+  .art-title {
+    font-size: 0.95rem;
+    font-weight: 600;
+  }
+  .art-date {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--text-2);
+  }
+
+  /* —— 空态 —— */
   .empty {
     background: var(--surface);
     border: 1px dashed var(--line);
@@ -31,4 +254,226 @@ import Base from '../../layouts/Base.astro';
   .empty-sub {
     font-size: 0.88rem;
   }
+
+  /* —— 灯箱：深色观赏模式（亮主题内的对比度设计，同代码块 rationale）—— */
+  .lightbox[hidden] {
+    display: none; /* display:flex 会覆盖 hidden 属性的 UA 默认值，必须显式声明 */
+  }
+  .lightbox {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--sp-4);
+  }
+  .lb-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(23, 27, 31, 0.94);
+  }
+  .lb-panel {
+    position: relative;
+    margin: 0;
+    max-width: min(1100px, 94vw);
+    max-height: 92vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--sp-2);
+    animation: lb-in 180ms ease;
+  }
+  @keyframes lb-in {
+    from { opacity: 0; transform: scale(0.98); }
+    to   { opacity: 1; transform: scale(1); }
+  }
+  .lb-img {
+    max-width: 100%;
+    max-height: 76vh;
+    object-fit: contain;
+    border-radius: var(--radius);
+    background: #16191d;
+  }
+  .lb-caption {
+    width: 100%;
+    color: #E8E4DA;
+    text-align: center;
+  }
+  .lb-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: var(--sp-3);
+  }
+  .lb-title {
+    font-size: 1.05rem;
+  }
+  .lb-counter {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    color: #9aa3ab;
+  }
+  .lb-meta {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: #9aa3ab;
+  }
+  .lb-prompt {
+    margin: var(--sp-1) 0 0;
+    font-size: 0.8rem;
+    color: #c9c4b8;
+    max-width: 60ch;
+  }
+  .lb-close {
+    position: absolute;
+    top: calc(-1 * var(--sp-4));
+    right: 0;
+    width: 36px;
+    height: 36px;
+    border: none;
+    border-radius: 50%;
+    background: rgba(232, 228, 218, 0.14);
+    color: #E8E4DA;
+    font-size: 15px;
+    cursor: pointer;
+  }
+  .lb-close:hover {
+    background: rgba(232, 228, 218, 0.28);
+  }
+  .lb-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 44px;
+    height: 44px;
+    border: none;
+    border-radius: 50%;
+    background: rgba(232, 228, 218, 0.14);
+    color: #E8E4DA;
+    font-size: 18px;
+    cursor: pointer;
+  }
+  .lb-nav:hover {
+    background: rgba(232, 228, 218, 0.28);
+  }
+  .lb-prev { left: calc(-1 * var(--sp-5)); }
+  .lb-next { right: calc(-1 * var(--sp-5)); }
+  @media (max-width: 720px) {
+    .lb-prev { left: var(--sp-1); }
+    .lb-next { right: var(--sp-1); }
+  }
+  body.lb-open {
+    overflow: hidden;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .art-card { transition: none; }
+    .lb-panel { animation: none; }
+  }
 </style>
+
+<script>
+  // 灯箱：点击 1 次打开 · ←/→/ESC 键盘 · 触屏滑动 · 相邻预加载防白屏
+  const cards = Array.from(document.querySelectorAll<HTMLButtonElement>('.art-card'));
+  const lb = document.getElementById('lightbox')!;
+  const lbImg = document.getElementById('lb-img') as HTMLImageElement;
+  const lbTitle = document.getElementById('lb-title')!;
+  const lbMeta = document.getElementById('lb-meta')!;
+  const lbPrompt = document.getElementById('lb-prompt')!;
+  const lbCounter = document.getElementById('lb-counter')!;
+  const lbClose = document.getElementById('lb-close')!;
+  let current = 0;
+  let lastFocus: HTMLElement | null = null;
+
+  function preload(index: number) {
+    const c = cards[index];
+    if (c) {
+      const im = new Image();
+      im.src = c.dataset.full!;
+    }
+  }
+
+  function render(index: number) {
+    if (cards.length === 0) return;
+    current = (index + cards.length) % cards.length;
+    const c = cards[current];
+    lbImg.src = c.dataset.full!;
+    lbImg.alt = c.dataset.title || '画廊图片';
+    lbTitle.textContent = c.dataset.title || '未命名';
+    lbMeta.textContent = [c.dataset.date, c.dataset.series].filter(Boolean).join(' · ');
+    if (c.dataset.prompt) {
+      lbPrompt.hidden = false;
+      lbPrompt.textContent = '提示词：' + c.dataset.prompt;
+    } else {
+      lbPrompt.hidden = true;
+    }
+    lbCounter.textContent = `${current + 1} / ${cards.length}`;
+    preload(current + 1);
+    preload(current - 1);
+  }
+
+  function open(index: number) {
+    lastFocus = document.activeElement as HTMLElement | null;
+    render(index);
+    lb.hidden = false;
+    document.body.classList.add('lb-open');
+    lbClose.focus();
+  }
+
+  function close() {
+    lb.hidden = true;
+    document.body.classList.remove('lb-open');
+    if (lastFocus) lastFocus.focus();
+  }
+
+  cards.forEach((c, i) => c.addEventListener('click', () => open(i)));
+  lbClose.addEventListener('click', close);
+  document.getElementById('lb-prev')!.addEventListener('click', () => render(current - 1));
+  document.getElementById('lb-next')!.addEventListener('click', () => render(current + 1));
+
+  // 点背板关闭（点图片本身不关）
+  lb.querySelectorAll<HTMLElement>('[data-close]').forEach((el) =>
+    el.addEventListener('click', (e) => {
+      if (e.target === el) close();
+    }),
+  );
+
+  // 键盘：ESC 关 · ←/→ 切换 · Tab 焦点锁在对话框内
+  document.addEventListener('keydown', (e) => {
+    if (lb.hidden) return;
+    if (e.key === 'Escape') close();
+    else if (e.key === 'ArrowLeft') render(current - 1);
+    else if (e.key === 'ArrowRight') render(current + 1);
+    else if (e.key === 'Tab') {
+      const focusables = lb.querySelectorAll<HTMLElement>('button');
+      if (focusables.length === 0) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    }
+  });
+
+  // 触屏滑动切换（全案 F-06：手势）
+  let touchX = 0;
+  lb.addEventListener('touchstart', (e) => {
+    touchX = e.changedTouches[0].clientX;
+  }, { passive: true });
+  lb.addEventListener('touchend', (e) => {
+    const dx = e.changedTouches[0].clientX - touchX;
+    if (Math.abs(dx) > 50) render(current + (dx < 0 ? 1 : -1));
+  }, { passive: true });
+
+  // 缩略图缺失时回退主图（防呆：忘记生成 -thumb 也不破图）
+  document.querySelectorAll<HTMLImageElement>('.art-card img').forEach((img) => {
+    img.addEventListener('error', () => {
+      if (img.src !== img.dataset.full) img.src = img.dataset.full!;
+    });
+  });
+</script>
