@@ -54,7 +54,9 @@ async function freshState() {
   if (loginLoc.includes('error=locked')) {
     // 失败锁定计数持久化在本地 KV（.wrangler/state），上次运行残留会挡住本次登录
     console.log('  ✗ KV 处于锁定状态（上次 E2E 运行的失败残留）');
-    console.log('    修复：rm -rf worker/.wrangler/state 并重启 wrangler dev 后重跑本测试');
+    console.log('    修复（任选一）：');
+    console.log('      a) cd worker && npx wrangler kv key delete login:fail --binding ADMIN_KV --local');
+    console.log('      b) rm -rf worker/.wrangler/state 并重启 wrangler dev');
     server.close();
     process.exit(2);
   }
@@ -80,25 +82,33 @@ async function freshState() {
   ok(calls.tokenExchanges.length === 1 && calls.tokenExchanges[0].code === 'good-code', 'token 交换发生一次且带 code', calls.tokenExchanges.length);
   ok(calls.userFetches.length === 1 && calls.userFetches[0].includes('gho_mock_whitelisted'), 'user 拉取用换来的 token', calls.userFetches);
 
-  // 失败分支（各计 1 次失败；注意顺序——happy path 已在前，失败累计满 5 次即锁定）
+  // 失败分支（各计 1 次失败）。顺序有讲究：第 5 次失败触发锁定时，
+  // 响应会从具体 error 转为 error=locked 且 detail（最后一次失败原因）依然透出。
+  // 因此把 stranger 放第 4 位、badCode 放第 5 位，分别验证两种终态。
+  const locOf = (res) => new URL(res.headers.get('location') || '/', WORKER);
+
   const miss = await fetch(WORKER + '/api/v1/auth/callback', { redirect: 'manual' });
-  ok((miss.headers.get('location') || '').includes('detail=missing_params'), '缺 code/state → detail=missing_params', miss.headers.get('location'));
+  ok(locOf(miss).searchParams.get('detail') === 'missing_params', '缺 code/state → detail=missing_params', miss.headers.get('location'));
 
   const badState = await fetch(WORKER + '/api/v1/auth/callback?code=x&state=not-a-real-state', { redirect: 'manual' });
-  ok((badState.headers.get('location') || '').includes('error=state'), 'state 不匹配 → error=state', badState.headers.get('location'));
+  ok(locOf(badState).searchParams.get('error') === 'state', 'state 不匹配 → error=state', badState.headers.get('location'));
 
   const denied = await fetch(WORKER + '/api/v1/auth/callback?error=access_denied', { redirect: 'manual' });
-  ok((denied.headers.get('location') || '').includes('error=denied'), '用户拒绝授权 → error=denied', denied.headers.get('location'));
-
-  const badCode = await fetch(WORKER + '/api/v1/auth/callback?code=bad-code&state=' + encodeURIComponent(await freshState()), { redirect: 'manual' });
-  ok((badCode.headers.get('location') || '').includes('error=callback') && (badCode.headers.get('location') || '').includes('incorrect'), 'code 无效 → error=callback + GitHub 错误详情透出', badCode.headers.get('location'));
+  ok(locOf(denied).searchParams.get('error') === 'denied', '用户拒绝授权 → error=denied', denied.headers.get('location'));
 
   const stranger = await fetch(WORKER + '/api/v1/auth/callback?code=stranger-code&state=' + encodeURIComponent(await freshState()), { redirect: 'manual' });
-  ok((stranger.headers.get('location') || '').includes('error=forbidden'), '非白名单账号 → error=forbidden', stranger.headers.get('location'));
+  const strangerLoc = locOf(stranger);
+  ok(strangerLoc.searchParams.get('error') === 'forbidden' && (strangerLoc.searchParams.get('detail') || '').includes('stranger'), '非白名单账号 → error=forbidden + detail 带登录名（便于发现授权错账号）', stranger.headers.get('location'));
 
-  // 第 5 次失败后锁定：后续 callback 直接 error=locked
+  // 第 5 次失败：转为锁定态，且 GitHub 错误原文随 detail 透出（锁定态也能看到根因）
+  const badCode = await fetch(WORKER + '/api/v1/auth/callback?code=bad-code&state=' + encodeURIComponent(await freshState()), { redirect: 'manual' });
+  const badCodeLoc = locOf(badCode);
+  ok(badCodeLoc.searchParams.get('error') === 'locked' && (badCodeLoc.searchParams.get('detail') || '').includes('incorrect'), '第 5 次失败 → 转锁定态 + GitHub 错误详情透出', badCode.headers.get('location'));
+
+  // 锁定期内再试：直接 error=locked，且 lastDetail 从 KV 持久化透出（排障不必干等 15 分钟）
   const locked = await fetch(WORKER + '/api/v1/auth/callback?code=x&state=y', { redirect: 'manual' });
-  ok((locked.headers.get('location') || '').includes('error=locked'), '满 5 次失败 → 锁定（error=locked）', locked.headers.get('location'));
+  const lockedLoc = locOf(locked);
+  ok(lockedLoc.searchParams.get('error') === 'locked' && (lockedLoc.searchParams.get('detail') || '').includes('incorrect'), '锁定期内重试 → error=locked + 上次失败原因仍在', locked.headers.get('location'));
 }
 
 // 3. 登录态（本地同密钥签 JWT，等价白名单账号会话）

@@ -130,10 +130,11 @@ export async function isLocked(env) {
   return st.lockedUntil > Date.now() ? st.lockedUntil : 0;
 }
 
-/** 记录一次失败；返回 {count, lockedUntil} */
-export async function recordFailure(env) {
+/** 记录一次失败（detail 持久化，供锁定态展示上次失败原因）；返回 {count, lockedUntil, lastDetail} */
+export async function recordFailure(env, detail) {
   const st = await getFailState(env);
   st.count += 1;
+  if (detail) st.lastDetail = String(detail).slice(0, 120);
   if (st.count >= MAX_FAILS) {
     st.lockedUntil = Date.now() + LOCK_SECONDS * 1000;
     st.count = 0;
@@ -144,6 +145,24 @@ export async function recordFailure(env) {
 
 export async function clearFailures(env) {
   await env.ADMIN_KV.delete('login:fail');
+}
+
+/**
+ * 记录一次失败并跳转登录页错误态。
+ * 满 5 次触发锁定时自动转 error=locked，且detail（最后一次失败原因）依然透出——
+ * 锁定态也必须能看到原因，否则排障时只能干等 15 分钟。
+ */
+async function failRedirect(env, error, detail) {
+  const st = await recordFailure(env, detail);
+  const reason = detail || st.lastDetail || '';
+  if (st.lockedUntil > Date.now()) {
+    const q = new URLSearchParams({ error: 'locked', until: String(st.lockedUntil) });
+    if (reason) q.set('detail', reason);
+    return redirect(`/admin?${q.toString()}`);
+  }
+  const q = new URLSearchParams({ error, left: String(MAX_FAILS - st.count) });
+  if (reason) q.set('detail', reason);
+  return redirect(`/admin?${q.toString()}`);
 }
 
 // ---------- 会话 ----------
@@ -185,7 +204,10 @@ export async function handleLogin(request, env) {
     const url = new URL(request.url);
     const lockedUntil = await isLocked(env);
     if (lockedUntil) {
-      return redirect(`/admin?error=locked&until=${lockedUntil}`);
+      const st = await getFailState(env);
+      const q = new URLSearchParams({ error: 'locked', until: String(lockedUntil) });
+      if (st.lastDetail) q.set('detail', st.lastDetail);
+      return redirect(`/admin?${q.toString()}`);
     }
     const returnTo = sanitizeReturnTo(url.searchParams.get('returnTo'));
     const stateBytes = new Uint8Array(32);
@@ -210,36 +232,40 @@ export async function handleCallback(request, env) {
     return await handleCallbackInner(request, env);
   } catch (err) {
     // 兜底：任何意外异常 → 登录页错误态并计失败（绝不给裸 1101）
-    const st = await recordFailure(env).catch(() => ({ count: 0 }));
-    return redirect(`/admin?error=callback&left=${MAX_FAILS - (st.count || 0)}`);
+    try {
+      return await failRedirect(env, 'callback', 'exception:' + String((err && err.message) || err).slice(0, 100));
+    } catch {
+      return redirect(`/admin?error=callback&left=${MAX_FAILS}`);
+    }
   }
 }
 
 async function handleCallbackInner(request, env) {
   const url = new URL(request.url);
-  const origin = url.origin;
 
-  // 锁定检查
+  // 锁定检查（带上一次失败原因，便于用户在锁定期也能看到根因）
   const lockedUntil = await isLocked(env);
-  if (lockedUntil) return redirect(`/admin?error=locked&until=${lockedUntil}`);
+  if (lockedUntil) {
+    const st = await getFailState(env);
+    const q = new URLSearchParams({ error: 'locked', until: String(lockedUntil) });
+    if (st.lastDetail) q.set('detail', st.lastDetail);
+    return redirect(`/admin?${q.toString()}`);
+  }
 
   // GitHub 返回 error（用户点拒绝等）
   if (url.searchParams.get('error')) {
-    const st = await recordFailure(env);
-    return redirect(`/admin?error=denied&left=${MAX_FAILS - st.count}`);
+    return failRedirect(env, 'denied', 'user_denied');
   }
 
   const code = url.searchParams.get('code');
   const state = url.searchParams.get('state');
   if (!code || !state) {
-    const st = await recordFailure(env);
-    return redirect(`/admin?error=callback&left=${MAX_FAILS - st.count}&detail=${encodeURIComponent('missing_params')}`);
+    return failRedirect(env, 'callback', 'missing_params');
   }
 
   const stateRaw = await env.ADMIN_KV.get(`oauth_state:${state}`);
   if (!stateRaw) {
-    const st = await recordFailure(env);
-    return redirect(`/admin?error=state&left=${MAX_FAILS - st.count}`);
+    return failRedirect(env, 'state', 'state_mismatch_or_expired');
   }
   await env.ADMIN_KV.delete(`oauth_state:${state}`);
   let returnTo = '/admin';
@@ -263,14 +289,13 @@ async function handleCallbackInner(request, env) {
       }).toString(),
     });
   } catch {
-    const st = await recordFailure(env);
-    return redirect(`/admin?error=callback&left=${MAX_FAILS - st.count}&detail=${encodeURIComponent('token_fetch_failed')}`);
+    return failRedirect(env, 'callback', 'token_fetch_failed');
   }
   const tokenData = await tokenResp.json().catch(() => ({}));
   if (!tokenData.access_token) {
-    const st = await recordFailure(env);
+    // 透出 GitHub 原文：incorrect_client_credentials=secret 错 / bad_verification_code=code 问题
     const detail = String(tokenData.error_description || tokenData.error || 'no_access_token').slice(0, 120);
-    return redirect(`/admin?error=callback&left=${MAX_FAILS - st.count}&detail=${encodeURIComponent(detail)}`);
+    return failRedirect(env, 'callback', detail);
   }
 
   // 拉取用户信息
@@ -283,14 +308,12 @@ async function handleCallbackInner(request, env) {
     user = await userResp.json();
     if (!user || !user.id) throw new Error('bad user');
   } catch {
-    const st = await recordFailure(env);
-    return redirect(`/admin?error=callback&left=${MAX_FAILS - st.count}&detail=${encodeURIComponent('user_fetch_failed')}`);
+    return failRedirect(env, 'callback', 'user_fetch_failed');
   }
 
-  // 白名单校验（按 user id）
+  // 白名单校验（按 user id）；detail 带登录名，便于用户发现"授权错了账号"
   if (!isWhitelisted(user.id, env)) {
-    const st = await recordFailure(env);
-    return redirect(`/admin?error=forbidden&left=${MAX_FAILS - st.count}`);
+    return failRedirect(env, 'forbidden', `非白名单账号: ${user.login || user.id}`);
   }
 
   // 签 JWT + 种会话 cookie + 清失败计数
