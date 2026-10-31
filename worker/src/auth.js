@@ -181,26 +181,41 @@ function sanitizeReturnTo(value) {
 }
 
 export async function handleLogin(request, env) {
-  const url = new URL(request.url);
-  const lockedUntil = await isLocked(env);
-  if (lockedUntil) {
-    return redirect(`/admin?error=locked&until=${lockedUntil}`);
+  try {
+    const url = new URL(request.url);
+    const lockedUntil = await isLocked(env);
+    if (lockedUntil) {
+      return redirect(`/admin?error=locked&until=${lockedUntil}`);
+    }
+    const returnTo = sanitizeReturnTo(url.searchParams.get('returnTo'));
+    const stateBytes = new Uint8Array(32);
+    crypto.getRandomValues(stateBytes);
+    const state = b64urlEncodeBuf(stateBytes.buffer);
+    await env.ADMIN_KV.put(`oauth_state:${state}`, JSON.stringify({ returnTo }), { expirationTtl: STATE_TTL });
+    const redirectUri = `${new URL(request.url).origin}/api/v1/auth/callback`;
+    const authorize = new URL('https://github.com/login/oauth/authorize');
+    authorize.searchParams.set('client_id', env.GITHUB_CLIENT_ID);
+    authorize.searchParams.set('redirect_uri', redirectUri);
+    authorize.searchParams.set('state', state);
+    authorize.searchParams.set('scope', 'read:user');
+    return redirect(authorize.toString());
+  } catch (err) {
+    // 兜底：任何意外异常 → 登录页错误态（绝不给裸 1101）
+    return redirect(`/admin?error=callback&left=${MAX_FAILS}`);
   }
-  const returnTo = sanitizeReturnTo(url.searchParams.get('returnTo'));
-  const stateBytes = new Uint8Array(32);
-  crypto.getRandomValues(stateBytes);
-  const state = b64urlEncodeBuf(stateBytes.buffer);
-  await env.ADMIN_KV.put(`oauth_state:${state}`, JSON.stringify({ returnTo }), { expirationTtl: STATE_TTL });
-  const redirectUri = `${new URL(request.url).origin}/api/v1/auth/callback`;
-  const authorize = new URL('https://github.com/login/oauth/authorize');
-  authorize.searchParams.set('client_id', env.GITHUB_CLIENT_ID);
-  authorize.searchParams.set('redirect_uri', redirectUri);
-  authorize.searchParams.set('state', state);
-  authorize.searchParams.set('scope', 'read:user');
-  return redirect(authorize.toString());
 }
 
 export async function handleCallback(request, env) {
+  try {
+    return await handleCallbackInner(request, env);
+  } catch (err) {
+    // 兜底：任何意外异常 → 登录页错误态并计失败（绝不给裸 1101）
+    const st = await recordFailure(env).catch(() => ({ count: 0 }));
+    return redirect(`/admin?error=callback&left=${MAX_FAILS - (st.count || 0)}`);
+  }
+}
+
+async function handleCallbackInner(request, env) {
   const url = new URL(request.url);
   const origin = url.origin;
 

@@ -19,6 +19,7 @@ import {
   redirect,
   requireAuth,
   isWhitelisted,
+  signJwt,
   handleLogin,
   handleCallback,
   handleLogout,
@@ -35,6 +36,20 @@ function isAllowedWritePath(path) {
 
 export default {
   async fetch(request, env, ctx) {
+    try {
+      return await handleRequest(request, env, ctx);
+    } catch (err) {
+      // 错误边界：未捕获异常返回可诊断 JSON（避免裸 1101 页；堆栈仅限排障期，验收后移除）
+      return json({
+        error: 'internal_error',
+        message: String((err && err.message) || err),
+        stack: String((err && err.stack) || '').slice(0, 400),
+      }, 500);
+    }
+  },
+};
+
+async function handleRequest(request, env, ctx) {
     const url = new URL(request.url);
     const { pathname } = url;
 
@@ -56,6 +71,26 @@ export default {
     if (pathname === '/api/v1/auth/login') return handleLogin(request, env);
     if (pathname === '/api/v1/auth/callback') return handleCallback(request, env);
     if (pathname === '/api/v1/auth/logout') return handleLogout(request, env);
+
+    if (pathname === '/api/v1/_debug/signjwt') {
+      try {
+        const jwt = await signJwt({ sub: 'debug', login: 'debug' }, env.JWT_SECRET || 'x');
+        return json({ ok: true, jwt_head: jwt.slice(0, 40) });
+      } catch (err) {
+        return json({ ok: false, stage: 'signJwt', error: String(err && err.stack || err) }, 500);
+      }
+    }
+
+    if (pathname === '/api/v1/_debug/kv') {
+      try {
+        await env.ADMIN_KV.put('debug:ping', 'pong', { expirationTtl: 60 });
+        const v = await env.ADMIN_KV.get('debug:ping');
+        await env.ADMIN_KV.delete('debug:ping');
+        return json({ ok: true, kv: v });
+      } catch (err) {
+        return json({ ok: false, stage: 'kv', error: String(err && err.stack || err) }, 500);
+      }
+    }
 
     if (pathname === '/api/v1/me') {
       const auth = await requireAuth(request, env);
@@ -127,5 +162,4 @@ export default {
     }
 
     return json({ error: 'not_found', path: pathname }, 404);
-  },
-};
+}
