@@ -50,7 +50,7 @@
 }
 
 .prose a:hover {
-  color: var(--hover);
+  color: var(--text);
 }
 
 .prose strong {

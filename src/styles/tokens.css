@@ -19,6 +19,11 @@
   --hover:      #82BAA3;                  /* 嫩青：hover */
   --code-bg:    #232A31;                  /* 代码块：浅色纸面上的深色底高可读（用户硬约束） */
   --code-text:  #E8E4DA;                  /* （11.4:1） */
+  /* —— 灯箱暗叠层派生组（与 code 组同族深色面，2026-10-31 M4 收编字面量）—— */
+  --overlay:      #16191d;                /* 叠层底（图占位/背景） */
+  --on-overlay:   #E8E4DA;                /* 叠层上主文本（≈13.7:1） */
+  --on-overlay-2: #9aa3ab;                /* 叠层次级文本（≈6.6:1） */
+  --on-overlay-3: #c9c4b8;                /* 叠层辅助文本（≈10.0:1） */
   --font-sans: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", system-ui, sans-serif;
   --font-mono: "JetBrains Mono", "SF Mono", Consolas, "Courier New", monospace;
   --sp-1: 4px; --sp-2: 8px; --sp-3: 16px; --sp-4: 24px; --sp-5: 40px; --sp-6: 64px;  /* 4px 基数 */
