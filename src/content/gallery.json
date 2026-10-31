@@ -3,39 +3,79 @@
     {
       "slug": "20261031-shinchan-nap-01",
       "src": "20261031-shinchan-nap-01.webp",
-      "title": "å°æ°ä¸å®¶çèå°åç¡",
+      "title": "小新一家的草地午睡",
       "date": "2026-10-31",
       "status": "published"
     },
     {
       "slug": "20261031-tiananmen-sunset-01",
       "src": "20261031-tiananmen-sunset-01.webp",
-      "title": "å¤©å®é¨æé",
+      "title": "天安门晚霞",
       "date": "2026-10-31",
       "status": "published"
     },
     {
       "slug": "20261031-dusk-portrait-01",
       "src": "20261031-dusk-portrait-01.webp",
-      "title": "æ®è²äººå",
+      "title": "暮色人像",
       "date": "2026-10-31",
       "status": "published"
     },
     {
       "slug": "20261031-anime-girl-01",
       "src": "20261031-anime-girl-01.webp",
-      "title": "æå¤å°å¥³",
+      "title": "暗夜少女",
       "date": "2026-10-31",
       "status": "published"
     },
     {
-      "slug": "20261031-ce-shi-01",
-      "src": "20261031-ce-shi-01.webp",
-      "title": "测试",
+      "slug": "20261031-starry-train-01",
+      "src": "20261031-starry-train-01.webp",
+      "title": "星空列车",
       "date": "2026-10-31",
-      "status": "draft",
-      "series": "测试",
-      "prompt": "测试"
+      "status": "published"
+    },
+    {
+      "slug": "20261031-wall-e-stars-01",
+      "src": "20261031-wall-e-stars-01.webp",
+      "title": "星空下的瓦力",
+      "date": "2026-10-31",
+      "status": "published"
+    },
+    {
+      "slug": "20261031-sakura-torii-01",
+      "src": "20261031-sakura-torii-01.webp",
+      "title": "樱下鸟居",
+      "date": "2026-10-31",
+      "status": "published"
+    },
+    {
+      "slug": "20261031-dusk-blades-01",
+      "src": "20261031-dusk-blades-01.webp",
+      "title": "暮色剑客",
+      "date": "2026-10-31",
+      "status": "published"
+    },
+    {
+      "slug": "20261031-moon-gate-dusk-01",
+      "src": "20261031-moon-gate-dusk-01.webp",
+      "title": "石门渔舟",
+      "date": "2026-10-31",
+      "status": "published"
+    },
+    {
+      "slug": "20261031-retro-bedroom-01",
+      "src": "20261031-retro-bedroom-01.webp",
+      "title": "复古少年的房间",
+      "date": "2026-10-31",
+      "status": "published"
+    },
+    {
+      "slug": "20261031-harbor-studio-01",
+      "src": "20261031-harbor-studio-01.webp",
+      "title": "海港画室",
+      "date": "2026-10-31",
+      "status": "published"
     }
   ]
 }
