@@ -7,7 +7,7 @@ interface Props {
   wide?: boolean;
 }
 
-const { title, description = '个人 GitHub 作品集：笔记档案 · 项目展示 · AI 画廊', wide = false } = Astro.props;
+const { title, description = '个人 GitHub 作品集：笔记档案 · 项目展示 · 艺术画廊', wide = false } = Astro.props;
 const year = new Date().getFullYear();
 
 // 全局导航：首页精确匹配，其余按路径前缀高亮（aria-current）

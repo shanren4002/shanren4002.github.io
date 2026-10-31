@@ -14,9 +14,14 @@ const allProjects = await getCollection('projects');
 const visibleProjects = isDev ? allProjects : allProjects.filter((p) => p.data.status === 'published');
 const projectCount = visibleProjects.length;
 const projectCatCount = new Set(visibleProjects.map((p) => p.data.category)).size;
+
+// 画廊计数（与画廊页同口径：生产仅 published）
+const galleryEntry = await getCollection('gallery');
+const galleryItems = galleryEntry[0]?.data.items ?? [];
+const galleryCount = (isDev ? galleryItems : galleryItems.filter((i) => i.status === 'published')).length;
 ---
 
-<Base title="首页" description="个人作品集：笔记档案、项目展示与 AI 画廊" wide>
+<Base title="首页" description="个人作品集：笔记档案、项目展示与艺术画廊" wide>
   <!-- ① 首屏：超大标题 + 彩铅涂鸦（makemepulse 式一句话一面墙） -->
   <section class="hero">
     <div class="hero-top">
@@ -29,7 +34,7 @@ const projectCatCount = new Set(visibleProjects.map((p) => p.data.category)).siz
         <span class="line line-1">你好，这里是我的</span>
         <span class="line line-2"><span class="mark">作品集</span>。</span>
       </h1>
-      <p class="hero-sub">笔记档案 · 项目展示 · AI 画廊 —— 持续归档中</p>
+      <p class="hero-sub">笔记档案 · 项目展示 · 艺术画廊 —— 持续归档中</p>
     </div>
 
     <div class="hero-bottom">
@@ -98,8 +103,8 @@ const projectCatCount = new Set(visibleProjects.map((p) => p.data.category)).siz
         <a class="entry reveal" href="/gallery/">
           <span class="entry-index">03</span>
           <span class="entry-body">
-            <span class="entry-title">AI 画廊</span>
-            <span class="entry-meta">M3 筹备中 · 彩铅 × makemepulse</span>
+            <span class="entry-title">艺术画廊</span>
+            <span class="entry-meta">{galleryCount} 张 · 艺术收藏 · 持续归档中</span>
           </span>
           <span class="entry-arrow" aria-hidden="true">→</span>
         </a>
