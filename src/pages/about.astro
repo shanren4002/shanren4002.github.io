@@ -2,19 +2,34 @@
 import Base from '../layouts/Base.astro';
 ---
 
-<Base title="关于" description="关于我与此作品集">
+<Base title="关于" description="关于我与此作品集：一个把学过、做过、收藏的东西都归档下来的地方">
   <article class="about">
     <h1>关于</h1>
     <p>
-      M0 占位页。这里将放置个人简介、技术栈与联系方式——内容在 M1 阶段补充。
+      这里是我的个人作品集——一个把<strong>学过、做过、收藏</strong>的东西都归档下来的地方。
+      学过的内容如果只留在聊天记录和本地文件夹里，等于没学；这个站就是我的第二大脑。
     </p>
+
+    <h2>我在做什么</h2>
+    <p>
+      平时写后端：FastAPI、Python、HTTP 基础；业余时间大半花在 AI 应用上——智能体、RAG、提示工程，
+      以及几个从想法走到可运行原型的小项目（智能客服、校园助手、通用 RAG 等）。
+      笔记按分类归档，项目留下档案，喜欢的画有个格子。
+    </p>
+
     <h2>这个站点怎么运转</h2>
     <ul>
       <li>静态站点：Astro 5 构建，GitHub Pages 托管，Pagefind 提供站内搜索；</li>
       <li>彩铅笔感亮主题：纸感底色 + 手绘色铅笔气质，全站统一视觉；</li>
-      <li>两条上传通道：对 AI 说"帮我把这 xxx 上传到我的作品集"（主通道），或使用网页后台自助上传（辅通道）；</li>
-      <li>CI 双门禁：内容契约预检 + 构建校验，任一失败即中止，线上保持上一可用版本。</li>
+      <li>两条上传通道：对 AI 说「帮我把这 xxx 上传到我的作品集」（主通道），或使用网页后台自助上传（辅通道）；</li>
+      <li>CI 双门禁：内容契约预检 + 构建校验，任一失败即中止，线上保持上一可用版本；</li>
+      <li>画廊：个人艺术收藏，含 AI 生成画作。</li>
     </ul>
+
+    <h2>找到我</h2>
+    <p>
+      GitHub：<a href="https://github.com/shanren4002" target="_blank" rel="noopener">github.com/shanren4002</a>
+    </p>
   </article>
 </Base>
 

@@ -21,7 +21,7 @@ const galleryItems = galleryEntry[0]?.data.items ?? [];
 const galleryCount = (isDev ? galleryItems : galleryItems.filter((i) => i.status === 'published')).length;
 ---
 
-<Base title="首页" description="个人作品集：笔记档案、项目展示与艺术画廊" wide>
+<Base title="作品集 · 个人档案" description="个人作品集：笔记档案、项目展示与艺术画廊" wide>
   <!-- ① 首屏：超大标题 + 彩铅涂鸦（makemepulse 式一句话一面墙） -->
   <section class="hero">
     <div class="hero-top">
@@ -49,15 +49,15 @@ const galleryCount = (isDev ? galleryItems : galleryItems.filter((i) => i.status
 
     <!-- 装饰涂鸦：随鼠标轻微视差，reduced-motion / 触屏自动静止 -->
     <svg class="doodle d-star" width="44" height="44" viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M12 0c.7 7.2 5.2 11.7 12 12-6.8.3-11.3 4.8-12 12-.7-7.2-5.2-11.7-12-12C6.8 11.7 11.3 7.2 12 0z" fill="#46648C" />
+      <path d="M12 0c.7 7.2 5.2 11.7 12 12-6.8.3-11.3 4.8-12 12-.7-7.2-5.2-11.7-12-12C6.8 11.7 11.3 7.2 12 0z" style="fill: var(--accent-ink)" />
     </svg>
     <svg class="doodle d-squiggle" width="110" height="14" viewBox="0 0 110 14" aria-hidden="true">
-      <path d="M2 8 Q 15 2, 28 8 T 54 8 T 80 7 T 108 8" fill="none" stroke="#82BAA3" stroke-width="3" stroke-linecap="round" />
+      <path d="M2 8 Q 15 2, 28 8 T 54 8 T 80 7 T 108 8" fill="none" style="stroke: var(--hover)" stroke-width="3" stroke-linecap="round" />
     </svg>
     <svg class="doodle d-dots" width="46" height="14" viewBox="0 0 46 14" aria-hidden="true">
-      <circle cx="7" cy="7" r="5" fill="#B78483" />
-      <circle cx="23" cy="7" r="3.5" fill="#B78483" opacity=".6" />
-      <circle cx="36" cy="7" r="2.5" fill="#B78483" opacity=".35" />
+      <circle cx="7" cy="7" r="5" style="fill: var(--accent-2)" />
+      <circle cx="23" cy="7" r="3.5" style="fill: var(--accent-2)" opacity=".6" />
+      <circle cx="36" cy="7" r="2.5" style="fill: var(--accent-2)" opacity=".35" />
     </svg>
   </section>
 

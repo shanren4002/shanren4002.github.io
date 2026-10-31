@@ -31,6 +31,14 @@ const isActive = (href: string) =>
     <meta name="description" content={description} />
     <meta name="generator" content={Astro.generator} />
     <title>{title}</title>
+    <link rel="canonical" href={new URL(Astro.url.pathname, Astro.site)} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={new URL(Astro.url.pathname, Astro.site)} />
+    <meta property="og:site_name" content="作品集 · 个人档案" />
+    <meta property="og:locale" content="zh_CN" />
+    <meta name="twitter:card" content="summary" />
   </head>
   <body>
     {!wide && (
@@ -82,8 +90,12 @@ const isActive = (href: string) =>
   }
   .page {
     flex: 1;
+    /* width:100% + align-self 代替 margin:auto：auto 边距会覆盖 stretch 使 flex 项
+       按内容 min-content 定宽，首页全幅横带（112vw）会因此撑出 375px 横滚 */
+    width: 100%;
+    align-self: center;
+    min-width: 0;
     max-width: 1080px;
-    margin: 0 auto;
     padding: var(--sp-4) var(--sp-3) var(--sp-5);
     display: flex;
     flex-direction: column;

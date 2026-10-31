@@ -44,6 +44,20 @@ const idx = (i: number) => String(i + 1).padStart(2, '0');
       </p>
     </header>
 
+    <div class="search-box">
+      <input
+        id="note-search"
+        type="search"
+        placeholder="搜索标题或正文…"
+        aria-label="搜索笔记"
+        autocomplete="off"
+        spellcheck="false"
+      />
+      <button type="button" id="search-clear" class="search-clear" hidden aria-label="清空搜索">×</button>
+    </div>
+    <p class="search-status" id="search-status" role="status" aria-live="polite"></p>
+    <div class="search-results" id="search-results" data-pf-base={import.meta.env.BASE_URL} hidden></div>
+
     {sorted.length === 0 ? (
       <div class="empty">
         <p>还没有已发布的笔记。</p>
@@ -67,7 +81,7 @@ const idx = (i: number) => String(i + 1).padStart(2, '0');
           <span class="cat-name">{cat}</span>
           <span class="cat-count">{list.length} 篇</span>
         </h2>
-        <div class="note-list" data-pagefind-body>
+        <div class="note-list">
           {list.map((n) => (
             <article class:list={['note-card', { featured: featuredSlugs.has(n.data.slug) }]}>
               <div class="note-meta">
@@ -89,6 +103,128 @@ const idx = (i: number) => String(i + 1).padStart(2, '0');
     ))}
   </section>
 </Base>
+
+<script>
+  // —— Pagefind 站内搜索（M4）：按需加载索引包，区分标题命中/正文命中 ——
+  const input = document.getElementById('note-search') as HTMLInputElement | null;
+  const clearBtn = document.getElementById('search-clear') as HTMLButtonElement | null;
+  const statusEl = document.getElementById('search-status');
+  const resultsEl = document.getElementById('search-results');
+  const browseEl = document.querySelector('.notes-index');
+
+  if (input && statusEl && resultsEl && browseEl) {
+    let pf: any = null;
+    let loading: Promise<any> | null = null;
+    let timer: number | undefined;
+    let seq = 0;
+
+    const ensurePagefind = () => {
+      if (pf) return Promise.resolve(pf);
+      if (!loading) {
+        // 运行时拼路径（打包器不可静态分析）；索引包仅在首次交互时加载
+        const base = resultsEl.dataset.pfBase || '/';
+        loading = import(base + 'pagefind/pagefind.js')
+          .then((mod: any) => mod?.default ?? mod)
+          .catch(() => null);
+      }
+      return loading;
+    };
+
+    const escapeText = (s: string) =>
+      String(s).replace(/[&<>"']/g, (c) =>
+        ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] as string,
+      );
+
+    const setSearching = (on: boolean) => {
+      browseEl.classList.toggle('searching', on);
+      resultsEl.hidden = !on;
+      if (clearBtn) clearBtn.hidden = !on;
+    };
+
+    const reset = () => {
+      seq += 1;
+      input.value = '';
+      setSearching(false);
+      statusEl.textContent = '';
+      resultsEl.innerHTML = '';
+    };
+
+    clearBtn?.addEventListener('click', reset);
+
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') reset();
+    });
+
+    input.addEventListener(
+      'input',
+      () => {
+        window.clearTimeout(timer);
+        timer = window.setTimeout(() => void runSearch(input.value), 150);
+      },
+    );
+
+    async function runSearch(q: string) {
+      const query = q.trim();
+      if (!query) {
+        reset();
+        return;
+      }
+      const my = ++seq;
+      setSearching(true);
+      if (!pf) statusEl.textContent = '索引加载中…';
+
+      const p = await ensurePagefind();
+      if (my !== seq) return;
+      if (!p) {
+        statusEl.textContent = '搜索索引不可用：dev 模式需先 pnpm build（线上不受影响）';
+        resultsEl.innerHTML = '';
+        return;
+      }
+
+      const t0 = performance.now();
+      let search: any;
+      try {
+        search = await p.search(query);
+      } catch {
+        if (my !== seq) return;
+        statusEl.textContent = '搜索出错了，请重试';
+        resultsEl.innerHTML = '';
+        return;
+      }
+      if (my !== seq) return;
+
+      const items: any[] = [];
+      for (const r of search?.results ?? []) {
+        items.push(await r.data());
+      }
+      if (my !== seq) return;
+
+      const ms = Math.max(1, Math.round(performance.now() - t0));
+      if (items.length === 0) {
+        statusEl.textContent = `没有找到与「${query}」相关的笔记`;
+        resultsEl.innerHTML = '';
+        return;
+      }
+
+      statusEl.textContent = `找到 ${items.length} 篇 · ${ms}ms`;
+      const words = query.toLowerCase().split(/\s+/).filter(Boolean);
+      resultsEl.innerHTML = items
+        .map((d: any) => {
+          const metaTitle = String(d.meta?.title ?? '');
+          const titleHit = words.some((w) => metaTitle.toLowerCase().includes(w));
+          const title = escapeText(metaTitle || d.url || '');
+          const cat = d.meta?.category ? escapeText(d.meta.category) : '';
+          return `<a class="search-hit" href="${escapeText(d.url ?? '#')}">
+            <span class="hit-badge${titleHit ? ' title' : ''}">${titleHit ? '标题命中' : '正文命中'}</span>
+            <span class="hit-title">${title}</span>
+            ${cat ? `<span class="hit-cat">${cat}</span>` : ''}
+            <p class="hit-excerpt">${d.excerpt ?? ''}</p>
+          </a>`;
+        })
+        .join('');
+    }
+  }
+</script>
 
 <style>
   .notes-index {
@@ -341,6 +477,123 @@ const idx = (i: number) => String(i + 1).padStart(2, '0');
       transition: none;
     }
     .cat-jump a {
+      transition: none;
+    }
+  }
+
+  /* —— Pagefind 搜索（M4）—— */
+  .search-box {
+    position: relative;
+    display: flex;
+    align-items: center;
+    margin-bottom: var(--sp-3);
+  }
+  .search-box input {
+    width: 100%;
+    font: inherit;
+    font-size: 1rem;
+    color: var(--text);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 10px 40px 10px 18px;
+    outline: none;
+    transition: border-color 150ms ease, box-shadow 150ms ease;
+  }
+  .search-box input::placeholder {
+    color: var(--text-2);
+  }
+  .search-box input:focus-visible {
+    border-color: var(--accent-ink);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--hl) 60%, transparent);
+  }
+  .search-clear {
+    position: absolute;
+    right: 8px;
+    width: 28px;
+    height: 28px;
+    border: none;
+    border-radius: 50%;
+    background: var(--surface-2);
+    color: var(--text-2);
+    font-size: 1rem;
+    line-height: 1;
+    cursor: pointer;
+  }
+  .search-clear:hover {
+    color: var(--text);
+    background: var(--hl);
+  }
+  .search-status {
+    margin: 0 0 var(--sp-3);
+    font-size: 0.85rem;
+    color: var(--text-2);
+    min-height: 1.4em;
+  }
+  .search-results {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-2);
+    margin-bottom: var(--sp-5);
+  }
+  /* 搜索态：隐藏分类浏览区 */
+  .notes-index.searching .cat-jump,
+  .notes-index.searching .cat-section {
+    display: none;
+  }
+  .search-hit {
+    display: block;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    padding: var(--sp-3) var(--sp-4);
+    text-decoration: none;
+    color: var(--text);
+    transition: border-color 150ms ease, transform 150ms ease;
+  }
+  .search-hit:hover {
+    border-color: var(--accent-ink);
+    transform: translateY(-1px);
+  }
+  .hit-badge {
+    display: inline-block;
+    font-size: 0.72rem;
+    color: var(--text-2);
+    background: var(--surface-2);
+    border-radius: 4px;
+    padding: 0 6px;
+    margin-right: var(--sp-2);
+    vertical-align: 2px;
+  }
+  .hit-badge.title {
+    background: var(--tag-bg);
+    color: var(--text);
+  }
+  .hit-title {
+    font-weight: 600;
+    font-size: 1.02rem;
+  }
+  .hit-cat {
+    margin-left: var(--sp-2);
+    font-size: 0.78rem;
+    color: var(--text-2);
+  }
+  .hit-excerpt {
+    margin: var(--sp-1) 0 0;
+    font-size: 0.9rem;
+    color: var(--text-2);
+  }
+  .hit-excerpt mark {
+    background: var(--hl);
+    color: var(--text);
+    border-radius: 2px;
+    padding: 0 1px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .search-hit:hover {
+      transform: none;
+    }
+    .search-box input {
       transition: none;
     }
   }

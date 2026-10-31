@@ -23,11 +23,11 @@ const fmt = (d: Date) =>
 
     <header class="note-head">
       <div class="note-meta">
-        <span class="cat-chip">{note.data.category}</span>
+        <span class="cat-chip" data-pagefind-meta="category">{note.data.category}</span>
         <time datetime={note.data.date.toISOString()}>{fmt(note.data.date)}</time>
         {note.data.status === 'draft' && import.meta.env.DEV && <span class="badge-draft">草稿预览</span>}
       </div>
-      <h1>{note.data.title}</h1>
+      <h1 data-pagefind-meta="title">{note.data.title}</h1>
       {note.data.tags.length > 0 && (
         <div class="tag-row">
           {note.data.tags.map((t) => <span class="tag">#{t}</span>)}
