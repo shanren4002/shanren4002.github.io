@@ -29,3 +29,7 @@ desktop.ini
 
 # —— 日志 ——
 *.log
+
+# —— Wrangler 本地 secrets（不得入库）——
+worker/.dev.vars
+.dev.vars

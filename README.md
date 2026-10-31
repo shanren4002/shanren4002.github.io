@@ -60,7 +60,7 @@ push 到 `main` 触发 `Deploy Pages`：
 | M1 | 内容迁移：53 篇笔记 → `src/content/notes/` | ✅ 已完成（52 篇上线） |
 | M2 | 项目档案 + demo 静态副本 | ✅ 已完成（9 个项目上线） |
 | M3 | 艺术画廊 + 图片管线（`optimize_image.py`） | ✅ 已完成（首批 4 张上线） |
-| M3.5 | 网页后台上传通道（OAuth + PAT） | ⬜ |
+| M3.5 | 网页后台上传通道（OAuth + PAT） | ✅ 已完成（Worker 已部署，待用户浏览器验收） |
 | M4 | 验收上线（G1~G12 质量门禁） | ⬜ |
 
 完整方案见 `.workbuddy/plans/全栈系统交付全案.md`。

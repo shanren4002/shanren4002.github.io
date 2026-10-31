@@ -1,16 +1,37 @@
 /**
- * worker/src/index.js —— Cloudflare Worker 同源后台骨架（M0）
+ * worker/src/index.js —— Cloudflare Worker 同源后台（M3.5 全量）
  *
- * 目标形态（全案 §2/§4）：站点与后台同源（/admin + /api/v1/*），无 CORS 面；
- * GitHub OAuth 登录 → PAT 写仓库 → commit 前缀 content(backend): 反推北极星。
- * M0 只交付空壳：存活探针 + 占位路由，验证部署链路、拿到 workers.dev 域名。
- *
- * 路由：
- *   GET  /                     → 存活探针（JSON）
- *   GET  /admin                → 后台占位页（M3.5 实现）
- *   GET  /api/v1/me            → 401（会话未实现）
- *   *    /api/v1/auth/callback → 501（OAuth 回调未实现）
+ * 路由（全案 §6.3，7 API + 1 工作台页）：
+ *   GET  /                     → 存活探针
+ *   GET  /admin                → 上传工作台（单文件页，内联亮主题 tokens）
+ *   GET  /api/v1/auth/login    → 302 GitHub OAuth authorize（state 存 KV，携带回跳目标）
+ *   GET  /api/v1/auth/callback → code→token→白名单(user id)→签 24h JWT→302 回跳
+ *   GET  /api/v1/auth/logout   → 清除会话 cookie
+ *   GET  /api/v1/me            → 登录态 + GitHub login
+ *   GET  /api/v1/contents/*    → 读仓库文件（查重/覆盖 sha/预览）
+ *   PUT  /api/v1/contents/*    → 单文件写（仅 src/content/**、public/images/**）
+ *   POST /api/v1/publish       → 主发布通道：md+N 图片 Git Data API 单 commit 原子入库
+ *   POST /api/v1/redeploy      → workflow_dispatch 手动重新部署（作者自救通道）
  */
+
+import {
+  json,
+  redirect,
+  requireAuth,
+  isWhitelisted,
+  handleLogin,
+  handleCallback,
+  handleLogout,
+} from './auth.js';
+import { getFile, putFile, dispatchDeploy } from './github.js';
+import { handlePublish } from './publish.js';
+import { ADMIN_HTML } from './admin-html.js';
+
+const ALLOWED_WRITE_PREFIXES = ['src/content/', 'public/images/'];
+
+function isAllowedWritePath(path) {
+  return ALLOWED_WRITE_PREFIXES.some((p) => path.startsWith(p));
+}
 
 export default {
   async fetch(request, env, ctx) {
@@ -18,61 +39,93 @@ export default {
     const { pathname } = url;
 
     if (pathname === '/') {
-      return json(
-        {
-          ok: true,
-          service: 'portfolio-backend',
-          stage: 'M0-skeleton',
-          time: new Date().toISOString(),
-        },
-        200,
-      );
+      return json({
+        ok: true,
+        service: 'portfolio-backend',
+        stage: 'M3.5-backend',
+        time: new Date().toISOString(),
+      });
     }
 
     if (pathname === '/admin') {
       return new Response(ADMIN_HTML, {
-        headers: { 'content-type': 'text/html; charset=utf-8' },
+        headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' },
       });
     }
 
+    if (pathname === '/api/v1/auth/login') return handleLogin(request, env);
+    if (pathname === '/api/v1/auth/callback') return handleCallback(request, env);
+    if (pathname === '/api/v1/auth/logout') return handleLogout(request, env);
+
     if (pathname === '/api/v1/me') {
-      return json({ error: 'unauthorized', message: '会话尚未实现（M3.5）' }, 401);
+      const auth = await requireAuth(request, env);
+      if (!auth.ok) return auth.response;
+      return json({ login: auth.session.login, id: auth.session.sub, expires_in_hint: '24h' });
     }
 
-    if (pathname === '/api/v1/auth/callback') {
-      return json({ error: 'not_implemented', message: 'OAuth 回调尚未实现（M3.5）' }, 501);
+    if (pathname.startsWith('/api/v1/contents/')) {
+      const auth = await requireAuth(request, env);
+      if (!auth.ok) return auth.response;
+      const filePath = decodeURIComponent(pathname.slice('/api/v1/contents/'.length));
+      if (!filePath || filePath.includes('..')) {
+        return json({ error: 'bad_path', message: '非法路径' }, 400);
+      }
+
+      if (request.method === 'GET') {
+        try {
+          const file = await getFile(env, filePath);
+          if (!file) return json({ error: 'not_found' }, 404);
+          return json({ path: filePath, sha: file.sha, size: file.size, encoding: file.encoding, content: file.content });
+        } catch (err) {
+          return json({ error: 'github_error', message: String(err.message || err) }, 502);
+        }
+      }
+
+      if (request.method === 'PUT') {
+        if (!isWhitelisted(auth.session.sub, env)) {
+          return json({ error: 'forbidden', message: '该账号无写入权限' }, 403);
+        }
+        if (!isAllowedWritePath(filePath)) {
+          return json({ error: 'forbidden_path', message: '仅允许写 src/content/** 与 public/images/**' }, 403);
+        }
+        try {
+          const body = await request.json();
+          if (!body || !body.content) return json({ error: 'bad_request', message: '缺少 content（base64）' }, 400);
+          const sha = await putFile(env, filePath, body.content, body.message || `content(backend): 更新 ${filePath}`);
+          return json({ ok: true, commit: sha });
+        } catch (err) {
+          return json({ error: 'github_error', message: String(err.message || err) }, 502);
+        }
+      }
+
+      return json({ error: 'method_not_allowed' }, 405);
+    }
+
+    if (pathname === '/api/v1/publish') {
+      if (request.method !== 'POST') return json({ error: 'method_not_allowed' }, 405);
+      const auth = await requireAuth(request, env);
+      if (!auth.ok) return auth.response;
+      if (!isWhitelisted(auth.session.sub, env)) {
+        return json({ error: 'forbidden', message: '该账号无访问权限' }, 403);
+      }
+      return handlePublish(request, env, auth.session);
+    }
+
+    if (pathname === '/api/v1/redeploy') {
+      if (request.method !== 'POST') return json({ error: 'method_not_allowed' }, 405);
+      const auth = await requireAuth(request, env);
+      if (!auth.ok) return auth.response;
+      if (!isWhitelisted(auth.session.sub, env)) {
+        return json({ error: 'forbidden', message: '该账号无访问权限' }, 403);
+      }
+      try {
+        await dispatchDeploy(env);
+        return json({ ok: true, message: '已触发重新部署，约 1~3 分钟生效' });
+      } catch (err) {
+        return json({ error: 'redeploy_failed', message: String(err.message || err) }, 502);
+      }
     }
 
     return json({ error: 'not_found', path: pathname }, 404);
   },
 };
-
-function json(data, status = 200) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { 'content-type': 'application/json; charset=utf-8' },
-  });
-}
-
-const ADMIN_HTML = `<!doctype html>
-<html lang="zh-CN">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>后台 · 施工中</title>
-<style>
-  body { font-family: system-ui, sans-serif; background:#2D3E52; color:#F0EAE3;
-         display:flex; align-items:center; justify-content:center; min-height:100vh; margin:0; }
-  .card { background:#354961; border-radius:16px; padding:40px 48px; text-align:center; }
-  h1 { margin:0 0 12px; font-size:1.4rem; }
-  p { margin:0; color:#A9B5CA; }
-  code { font-size:.85em; background:#26313D; border-radius:4px; padding:0 6px; }
-</style>
-</head>
-<body>
-  <div class="card">
-    <h1>作品集后台</h1>
-    <p>M0 骨架运行正常。上传通道将在 <code>M3.5</code> 上线。</p>
-  </div>
-</body>
-</html>`;

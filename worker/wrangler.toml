@@ -5,8 +5,9 @@
 name = "portfolio-backend"
 main = "src/index.js"
 compatibility_date = "2026-10-29"
+account_id = "949775bf13d68a348e150d1d37ce6486"
 
-# [vars] 仅放非敏感配置；敏感值（CLIENT_SECRET/PAT）一律走
+# [vars] 仅放非敏感配置；敏感值（CLIENT_SECRET/PAT/JWT_SECRET）一律走
 # `wrangler secret put`，禁止写进本文件（安全红线：零入库）。
 # 已回填（2026-10-29）：站点域名 shanren4002.github.io；
 # GITHUB_CLIENT_ID 来自用户注册的 OAuth App（公开信息，随 OAuth 链接传输）；
@@ -15,6 +16,12 @@ compatibility_date = "2026-10-29"
 ALLOWED_ORIGIN = "https://shanren4002.github.io"
 GITHUB_CLIENT_ID = "Ov23lijqsOF9BX5xnW8S"
 ALLOWED_USERS = "213465035"
+GITHUB_REPO = "shanren4002/shanren4002.github.io"
+
+# M3.5：OAuth state（一次性防 CSRF）+ 登录失败计数（满 5 次锁 15 分钟）
+[[kv_namespaces]]
+binding = "ADMIN_KV"
+id = "f877423034b947478b26836cec7865c2"
 
 # M2+ 绑定自定义域（同源后台，无 CORS 面）后取消注释并回填：
 # [[routes]]
