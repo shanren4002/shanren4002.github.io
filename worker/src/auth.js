@@ -57,6 +57,8 @@ function b64urlDecodeStr(s) {
 // ---------- JWT（HS256） ----------
 
 async function jwtKey(secret) {
+  // 空/缺失 secret 会让 importKey 抛晦涩的 "HMAC key length (0)"——在此拦住并给出可操作提示
+  if (!secret) throw new Error('JWT_SECRET 未配置：请执行 wrangler secret put JWT_SECRET');
   return crypto.subtle.importKey(
     'raw',
     new TextEncoder().encode(secret),
