@@ -52,6 +52,8 @@ const ADMIN_JS = [
   '    startLockCountdown(until);',
   '    return;',
   '  } else msg = "登录失败，请重试。";',
+  '  var detail = params.get("detail");',
+  '  if (detail) msg += "（" + decodeURIComponent(detail) + "）";',
   '  var left = params.get("left");',
   '  if (left && parseInt(left, 10) < 5) msg += "还可尝试 " + (5 - parseInt(left, 10)) + " 次。";',
   '  box.textContent = msg;',

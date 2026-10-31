@@ -233,10 +233,9 @@ async function handleCallbackInner(request, env) {
   const state = url.searchParams.get('state');
   if (!code || !state) {
     const st = await recordFailure(env);
-    return redirect(`/admin?error=callback&left=${MAX_FAILS - st.count}`);
+    return redirect(`/admin?error=callback&left=${MAX_FAILS - st.count}&detail=${encodeURIComponent('missing_params')}`);
   }
 
-  // state 一次性校验
   const stateRaw = await env.ADMIN_KV.get(`oauth_state:${state}`);
   if (!stateRaw) {
     const st = await recordFailure(env);
@@ -248,39 +247,44 @@ async function handleCallbackInner(request, env) {
     returnTo = sanitizeReturnTo(JSON.parse(stateRaw).returnTo);
   } catch { /* 用默认值 */ }
 
-  // code → access token
+  // code → access token（form 编码 + redirect_uri 必须与 authorize 请求一致，否则 GitHub 拒绝）
+  const redirectUri = `${url.origin}/api/v1/auth/callback`;
+  const tokenUrl = env.GITHUB_TOKEN_URL || 'https://github.com/login/oauth/access_token';
   let tokenResp;
   try {
-    tokenResp = await fetch('https://github.com/login/oauth/access_token', {
+    tokenResp = await fetch(tokenUrl, {
       method: 'POST',
-      headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'User-Agent': 'portfolio-backend-worker' },
-      body: JSON.stringify({
+      headers: { Accept: 'application/json', 'Content-Type': 'application/x-www-form-urlencoded', 'User-Agent': 'portfolio-backend-worker' },
+      body: new URLSearchParams({
         client_id: env.GITHUB_CLIENT_ID,
         client_secret: env.GITHUB_CLIENT_SECRET,
         code,
-      }),
+        redirect_uri: redirectUri,
+      }).toString(),
     });
   } catch {
     const st = await recordFailure(env);
-    return redirect(`/admin?error=callback&left=${MAX_FAILS - st.count}`);
+    return redirect(`/admin?error=callback&left=${MAX_FAILS - st.count}&detail=${encodeURIComponent('token_fetch_failed')}`);
   }
   const tokenData = await tokenResp.json().catch(() => ({}));
   if (!tokenData.access_token) {
     const st = await recordFailure(env);
-    return redirect(`/admin?error=callback&left=${MAX_FAILS - st.count}`);
+    const detail = String(tokenData.error_description || tokenData.error || 'no_access_token').slice(0, 120);
+    return redirect(`/admin?error=callback&left=${MAX_FAILS - st.count}&detail=${encodeURIComponent(detail)}`);
   }
 
   // 拉取用户信息
+  const apiBase = env.GITHUB_API_BASE || 'https://api.github.com';
   let user;
   try {
-    const userResp = await fetch('https://api.github.com/user', {
+    const userResp = await fetch(`${apiBase}/user`, {
       headers: { Authorization: `Bearer ${tokenData.access_token}`, Accept: 'application/vnd.github+json', 'User-Agent': 'portfolio-backend-worker' },
     });
     user = await userResp.json();
     if (!user || !user.id) throw new Error('bad user');
   } catch {
     const st = await recordFailure(env);
-    return redirect(`/admin?error=callback&left=${MAX_FAILS - st.count}`);
+    return redirect(`/admin?error=callback&left=${MAX_FAILS - st.count}&detail=${encodeURIComponent('user_fetch_failed')}`);
   }
 
   // 白名单校验（按 user id）

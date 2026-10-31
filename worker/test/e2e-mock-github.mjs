@@ -5,7 +5,7 @@
 import { createServer } from 'node:http';
 
 export function startMockGithub() {
-  const calls = { blobs: [], trees: [], commits: [], refGets: [], refPatch: [], contentGets: [], contentPuts: [] };
+  const calls = { blobs: [], trees: [], commits: [], refGets: [], refPatch: [], contentGets: [], contentPuts: [], tokenExchanges: [], userFetches: [] };
   let blobN = 0;
 
   const server = createServer((req, res) => {
@@ -18,7 +18,15 @@ export function startMockGithub() {
     const readBody = () => new Promise((resolve) => {
       let d = '';
       req.on('data', (c) => (d += c));
-      req.on('end', () => { try { resolve(JSON.parse(d || '{}')); } catch { resolve({}); } });
+      req.on('end', () => {
+        try {
+          if ((req.headers['content-type'] || '').includes('x-www-form-urlencoded')) {
+            resolve(Object.fromEntries(new URLSearchParams(d)));
+          } else {
+            resolve(JSON.parse(d || '{}'));
+          }
+        } catch { resolve({}); }
+      });
     });
 
     (async () => {
@@ -75,6 +83,22 @@ export function startMockGithub() {
         const body = await readBody();
         calls.refPatch.push(body);
         return send(200, { object: { sha: body.sha } });
+      }
+      // OAuth token 交换 + user（auth.js 经 GITHUB_TOKEN_URL / GITHUB_API_BASE 注入）
+      if (req.method === 'POST' && path === '/login/oauth/access_token') {
+        const body = await readBody();
+        calls.tokenExchanges.push(body);
+        if (body.code === 'bad-code') {
+          return send(200, { error: 'bad_verification_code', error_description: 'The code passed is incorrect or expired.' });
+        }
+        if (body.code === 'stranger-code') return send(200, { access_token: 'gho_mock_stranger' });
+        return send(200, { access_token: 'gho_mock_whitelisted' });
+      }
+      if (req.method === 'GET' && path === '/user') {
+        const authz = req.headers.authorization || '';
+        calls.userFetches.push(authz);
+        if (authz.includes('gho_mock_stranger')) return send(200, { id: 999, login: 'stranger' });
+        return send(200, { id: 213465035, login: 'shanren4002' });
       }
       // Actions
       if (req.method === 'POST' && path.includes('/actions/workflows/')) {
