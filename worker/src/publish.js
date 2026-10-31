@@ -154,6 +154,15 @@ export function utf8ToBase64(s) {
   return btoa(unescape(encodeURIComponent(s)));
 }
 
+/** utf8ToBase64 的逆运算：base64 → UTF-8 文本。
+ *  注意：不能直接 atob 后当字符串用——atob 产出逐字节二进制串，
+ *  直接 JSON.parse 会把中文按 Latin-1 解读成乱码（2026-10-31 线上事故）。 */
+export function base64ToUtf8(b64) {
+  const bin = atob(String(b64));
+  const bytes = Uint8Array.from(bin, (c) => c.charCodeAt(0));
+  return new TextDecoder().decode(bytes);
+}
+
 /** 组装一对（主图 + 缩略图）文件名：YYYYMMDD-<slug>-<序号>[.-thumb].<ext> */
 export function imagePairNames(day, slug, seq, ext) {
   return {
@@ -231,7 +240,7 @@ export async function handlePublish(request, env, session) {
       let galleryData = { items: [] };
       if (current && current.content) {
         try {
-          galleryData = JSON.parse(atob(current.content));
+          galleryData = JSON.parse(base64ToUtf8(current.content));
         } catch { /* 损坏则重建 */ }
       }
       if (!galleryData || !Array.isArray(galleryData.items)) galleryData = { items: [] };

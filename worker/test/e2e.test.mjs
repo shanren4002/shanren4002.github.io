@@ -186,6 +186,7 @@ const cookie = `admin_session=${jwt}`;
   const galleryBlob = newBlobs.find((b) => b.content === Buffer.from(JSON.stringify({ items: [] })).toString('base64')) || newBlobs[newBlobs.length - 1];
   const galleryJson = JSON.parse(Buffer.from(galleryBlob.content, 'base64').toString('utf8'));
   ok(galleryJson.items.length === 2, 'gallery.json 追加后 2 条（旧 1 + 新 1）', galleryJson.items.length);
+  ok(galleryJson.items[0].title === '旧作' && galleryJson.items[0].slug === '20261031-old-art-01', '旧条目中文原样保留（base64→UTF-8 解码无乱码）', galleryJson.items[0]);
   const last = galleryJson.items[galleryJson.items.length - 1];
   ok(last.slug === '20261031-e2e-test-art-01' && last.src === '20261031-e2e-test-art-01.webp' && last.series === '测试系列' && last.prompt === 'a test prompt' && last.status === 'published', '新条目字段完整（slug/src/series/prompt/status）', last);
 }

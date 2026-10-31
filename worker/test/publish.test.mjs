@@ -4,7 +4,7 @@
  */
 import {
   slugify, isValidSlug, todayCN, buildMarkdown, nextSeq,
-  base64Length, validatePayload, imagePairNames, utf8ToBase64,
+  base64Length, validatePayload, imagePairNames, utf8ToBase64, base64ToUtf8,
 } from '../src/publish.js';
 
 let pass = 0, fail = 0;
@@ -80,6 +80,15 @@ eq(validatePayload({ kind: 'note', meta: { title: 't', slug: 's', date: '2026-10
 
 console.log('— todayCN —');
 ok(/^\d{4}-\d{2}-\d{2}$/.test(todayCN()), 'UTC+8 日期格式');
+
+console.log('— base64 编解码往返 —');
+{
+  const s = '标题：小新一家的草地午睡 / 天安门晚霞 / 暮色人像';
+  const b64 = utf8ToBase64(s);
+  eq(base64ToUtf8(b64), s, '中文 UTF-8 往返不失真');
+  eq(JSON.parse(base64ToUtf8(utf8ToBase64(JSON.stringify({ t: '旧作', items: [1] })))).t, '旧作', 'JSON 场景中文无损');
+  ok(Buffer.from(b64, 'base64').toString('utf8') === s, '与 Node Buffer 解码结果一致');
+}
 
 console.log(`\n结果：${pass} 通过 / ${fail} 失败`);
 process.exit(fail ? 1 : 0);
