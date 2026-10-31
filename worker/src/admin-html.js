@@ -118,6 +118,66 @@ const ADMIN_JS = [
   '  if (s) $("f-slug").value = s;',
   '}',
   '',
+  '/* ---------- 智能预填：粘贴链接 → 标题/摘要/封面图（M4） ---------- */',
+  'var lastCover = "";',
+  '',
+  'async function fetchMeta() {',
+  '  var url = $("f-url").value.trim();',
+  '  var msg = $("fetch-meta-msg");',
+  '  if (!/^https?:\\/\\//i.test(url)) { msg.textContent = "请输入 http/https 链接"; return; }',
+  '  msg.textContent = "获取中…";',
+  '  $("btn-fetch-meta").disabled = true;',
+  '  try {',
+  '    var res = await fetch("/api/v1/fetch-meta", {',
+  '      method: "POST", headers: { "content-type": "application/json" }, credentials: "same-origin",',
+  '      body: JSON.stringify({ url: url })',
+  '    });',
+  '    if (res.status === 401) { location.href = "/api/v1/auth/login"; return; }',
+  '    var data = await res.json().catch(function() { return {}; });',
+  '    if (!res.ok) { msg.textContent = data.message || "获取失败"; return; }',
+  '    var filled = [];',
+  '    if (data.title) { $("f-title").value = data.title; filled.push("标题"); }',
+  '    if (data.summary) { $("f-summary").value = data.summary; filled.push("摘要"); }',
+  '    if (data.title && !$("f-slug").value) suggestSlug();',
+  '    lastCover = data.cover || "";',
+  '    $("btn-fetch-cover").style.display = lastCover ? "" : "none";',
+  '    msg.textContent = filled.length',
+  '      ? "已填：" + filled.join("、") + (lastCover ? "，发现封面图" : "")',
+  '      : "未找到标题/摘要，请手动填写";',
+  '    saveDraft(); renderPreview();',
+  '  } catch (e) {',
+  '    msg.textContent = "网络错误，请重试";',
+  '  } finally {',
+  '    $("btn-fetch-meta").disabled = false;',
+  '  }',
+  '}',
+  '',
+  'async function fetchCover() {',
+  '  if (!lastCover) return;',
+  '  var msg = $("fetch-meta-msg");',
+  '  msg.textContent = "封面图下载中…";',
+  '  $("btn-fetch-cover").disabled = true;',
+  '  try {',
+  '    var res = await fetch("/api/v1/fetch-image", {',
+  '      method: "POST", headers: { "content-type": "application/json" }, credentials: "same-origin",',
+  '      body: JSON.stringify({ url: lastCover })',
+  '    });',
+  '    if (res.status === 401) { location.href = "/api/v1/auth/login"; return; }',
+  '    var data = await res.json().catch(function() { return {}; });',
+  '    if (!res.ok) { msg.textContent = data.message || "封面图下载失败"; return; }',
+  '    var bin = atob(data.content);',
+  '    var bytes = new Uint8Array(bin.length);',
+  '    for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);',
+  '    var file = new File([bytes], data.name, { type: data.type });',
+  '    await handleFiles([file]);',
+  '    msg.textContent = "封面图已加入上传列表";',
+  '  } catch (e) {',
+  '    msg.textContent = "封面图下载失败";',
+  '  } finally {',
+  '    $("btn-fetch-cover").disabled = false;',
+  '  }',
+  '}',
+  '',
   'function todayStr() {',
   '  var d = new Date(Date.now() + 8 * 3600 * 1000);',
   '  return d.toISOString().slice(0, 10);',
@@ -472,6 +532,8 @@ const ADMIN_JS = [
   '    t.addEventListener("click", function() { setKind(t.dataset.kind); });',
   '  });',
   '  $("btn-suggest-slug").addEventListener("click", suggestSlug);',
+  '  $("btn-fetch-meta").addEventListener("click", fetchMeta);',
+  '  $("btn-fetch-cover").addEventListener("click", fetchCover);',
   '  $("btn-publish").addEventListener("click", publish);',
   '  $("btn-again").addEventListener("click", resetForm);',
   '  $("btn-logout").addEventListener("click", logout);',
@@ -539,6 +601,12 @@ export const ADMIN_HTML = `<!doctype html>
   .slug-row input { flex: 1; }
   .btn-mini { border: 1px solid var(--line); background: var(--surface-2); border-radius: 10px; padding: 0 14px; font-size: .82rem; cursor: pointer; color: var(--text-2); white-space: nowrap; }
   .btn-mini:hover { background: var(--hover); color: var(--text); }
+  .btn-mini:disabled { opacity: .6; cursor: wait; }
+
+  .prefill-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 16px; }
+  .prefill-bar input { flex: 1; min-width: 240px; font: inherit; font-size: .9rem; color: var(--text); background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 9px 14px; outline: none; transition: border-color .15s; }
+  .prefill-bar input:focus-visible { border-color: var(--accent-ink); }
+  .prefill-msg { font-size: .8rem; color: var(--accent-ink); }
   #draft-tip { display: none; font-size: .78rem; color: var(--accent-ink); background: var(--hl); border-radius: 6px; padding: 2px 8px; margin-left: 8px; }
 
   #dropzone { border: 2px dashed var(--line); border-radius: 12px; padding: 28px 16px; text-align: center; color: var(--text-2); font-size: .88rem; cursor: pointer; transition: border-color .15s, background .15s; }
@@ -614,6 +682,13 @@ export const ADMIN_HTML = `<!doctype html>
     <button class="kind-tab active" data-kind="note" role="tab">笔记</button>
     <button class="kind-tab" data-kind="project" role="tab">项目</button>
     <button class="kind-tab" data-kind="gallery" role="tab">画廊图片</button>
+  </div>
+
+  <div class="prefill-bar">
+    <input type="url" id="f-url" placeholder="粘贴链接，自动填标题/摘要（文章页、项目页均可）" aria-label="预填链接">
+    <button class="btn-mini" id="btn-fetch-meta" type="button">获取信息</button>
+    <button class="btn-mini" id="btn-fetch-cover" type="button" style="display:none">下载封面图</button>
+    <span class="prefill-msg" id="fetch-meta-msg" role="status" aria-live="polite"></span>
   </div>
 
   <div class="workbench">

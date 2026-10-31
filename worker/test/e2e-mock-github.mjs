@@ -104,6 +104,23 @@ export function startMockGithub() {
       if (req.method === 'POST' && path.includes('/actions/workflows/')) {
         return send(204, {});
       }
+      // 智能预填 fixture（fetch-meta / fetch-image；经 .dev.vars FETCH_ALLOW_PRIVATE=1 放开内网）
+      if (req.method === 'GET' && path === '/mock-page') {
+        res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
+        return res.end('<!doctype html><html><head><title>Mock 页面</title>' +
+          '<meta property="og:title" content="Mock OG 标题">' +
+          '<meta name="description" content="Mock 描述">' +
+          '<meta property="og:image" content="/img/cover.png">' +
+          '</head><body></body></html>');
+      }
+      if (req.method === 'GET' && path === '/img/cover.png') {
+        res.writeHead(200, { 'content-type': 'image/png' });
+        return res.end(Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64'));
+      }
+      if (req.method === 'GET' && path === '/mock-not-image') {
+        res.writeHead(200, { 'content-type': 'text/html' });
+        return res.end('<html><body>不是图片</body></html>');
+      }
       send(404, { message: `mock: unhandled ${req.method} ${path}` });
     })().catch((e) => send(500, { error: String(e) }));
   });

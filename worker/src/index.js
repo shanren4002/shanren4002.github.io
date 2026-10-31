@@ -11,6 +11,8 @@
  *   GET  /api/v1/contents/*    → 读仓库文件（查重/覆盖 sha/预览）
  *   PUT  /api/v1/contents/*    → 单文件写（仅 src/content/**、public/images/**）
  *   POST /api/v1/publish       → 主发布通道：md+N 图片 Git Data API 单 commit 原子入库
+ *   POST /api/v1/fetch-meta    → 智能预填：抓取目标页 og/meta，返回标题/摘要/封面图 URL
+ *   POST /api/v1/fetch-image   → 智能预填：下载封面图（SSRF 防护 + 魔术字节校验，base64 回传）
  *   POST /api/v1/redeploy      → workflow_dispatch 手动重新部署（作者自救通道）
  */
 
@@ -19,13 +21,13 @@ import {
   redirect,
   requireAuth,
   isWhitelisted,
-  signJwt,
   handleLogin,
   handleCallback,
   handleLogout,
 } from './auth.js';
 import { getFile, putFile, dispatchDeploy } from './github.js';
 import { handlePublish } from './publish.js';
+import { handleFetchMeta, handleFetchImage } from './fetchmeta.js';
 import { ADMIN_HTML } from './admin-html.js';
 
 const ALLOWED_WRITE_PREFIXES = ['src/content/', 'public/images/'];
@@ -39,11 +41,10 @@ export default {
     try {
       return await handleRequest(request, env, ctx);
     } catch (err) {
-      // 错误边界：未捕获异常返回可诊断 JSON（避免裸 1101 页；堆栈仅限排障期，验收后移除）
+      // 错误边界：未捕获异常返回可诊断 JSON（避免裸 1101 页；M4 验收后不再透出堆栈，细节经 wrangler tail 观察）
       return json({
         error: 'internal_error',
         message: String((err && err.message) || err),
-        stack: String((err && err.stack) || '').slice(0, 400),
       }, 500);
     }
   },
@@ -71,26 +72,6 @@ async function handleRequest(request, env, ctx) {
     if (pathname === '/api/v1/auth/login') return handleLogin(request, env);
     if (pathname === '/api/v1/auth/callback') return handleCallback(request, env);
     if (pathname === '/api/v1/auth/logout') return handleLogout(request, env);
-
-    if (pathname === '/api/v1/_debug/signjwt') {
-      try {
-        const jwt = await signJwt({ sub: 'debug', login: 'debug' }, env.JWT_SECRET || 'x');
-        return json({ ok: true, jwt_head: jwt.slice(0, 40) });
-      } catch (err) {
-        return json({ ok: false, stage: 'signJwt', error: String(err && err.stack || err) }, 500);
-      }
-    }
-
-    if (pathname === '/api/v1/_debug/kv') {
-      try {
-        await env.ADMIN_KV.put('debug:ping', 'pong', { expirationTtl: 60 });
-        const v = await env.ADMIN_KV.get('debug:ping');
-        await env.ADMIN_KV.delete('debug:ping');
-        return json({ ok: true, kv: v });
-      } catch (err) {
-        return json({ ok: false, stage: 'kv', error: String(err && err.stack || err) }, 500);
-      }
-    }
 
     if (pathname === '/api/v1/me') {
       const auth = await requireAuth(request, env);
@@ -159,6 +140,18 @@ async function handleRequest(request, env, ctx) {
       } catch (err) {
         return json({ error: 'redeploy_failed', message: String(err.message || err) }, 502);
       }
+    }
+
+    if (pathname === '/api/v1/fetch-meta' || pathname === '/api/v1/fetch-image') {
+      if (request.method !== 'POST') return json({ error: 'method_not_allowed' }, 405);
+      const auth = await requireAuth(request, env);
+      if (!auth.ok) return auth.response;
+      if (!isWhitelisted(auth.session.sub, env)) {
+        return json({ error: 'forbidden', message: '该账号无访问权限' }, 403);
+      }
+      return pathname === '/api/v1/fetch-meta'
+        ? handleFetchMeta(request, env)
+        : handleFetchImage(request, env);
     }
 
     return json({ error: 'not_found', path: pathname }, 404);

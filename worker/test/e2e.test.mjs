@@ -240,6 +240,38 @@ const cookie = `admin_session=${jwt}`;
   ok(r.status === 200 && r.data.ok, 'redeploy → 200', r.data);
 }
 
+// 10. 智能预填：fetch-meta / fetch-image（M4）
+{
+  const m1 = await api('/api/v1/fetch-meta', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ url: 'http://127.0.0.1:8788/mock-page' }) });
+  ok(m1.status === 401, '未登录 fetch-meta → 401', m1.data);
+  const i1 = await api('/api/v1/fetch-image', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ url: 'http://127.0.0.1:8788/img/cover.png' }) });
+  ok(i1.status === 401, '未登录 fetch-image → 401', i1.data);
+
+  const g = await api('/api/v1/fetch-meta');
+  ok(g.status === 405, 'GET fetch-meta → 405', g.data);
+
+  const m2 = await api('/api/v1/fetch-meta', { method: 'POST', headers: { cookie, 'content-type': 'application/json' }, body: JSON.stringify({ url: 'http://127.0.0.1:8788/mock-page' }) });
+  ok(m2.status === 200 && m2.data.ok, '登录后 fetch-meta → 200', m2.data);
+  ok(m2.data.title === 'Mock OG 标题', 'og:title 提取', m2.data.title);
+  ok(m2.data.summary === 'Mock 描述', 'description 提取', m2.data.summary);
+  ok(m2.data.cover === 'http://127.0.0.1:8788/img/cover.png', 'og:image 绝对化', m2.data.cover);
+  ok(m2.data.site === '127.0.0.1', 'site 主机名', m2.data.site);
+
+  const m3 = await api('/api/v1/fetch-meta', { method: 'POST', headers: { cookie, 'content-type': 'application/json' }, body: JSON.stringify({ url: 'ftp://127.0.0.1/x' }) });
+  ok(m3.status === 400, 'ftp 协议 → 400', m3.data);
+
+  const m4 = await api('/api/v1/fetch-meta', { method: 'POST', headers: { cookie, 'content-type': 'application/json' }, body: JSON.stringify({}) });
+  ok(m4.status === 400, '缺 url → 400', m4.data);
+
+  const i2 = await api('/api/v1/fetch-image', { method: 'POST', headers: { cookie, 'content-type': 'application/json' }, body: JSON.stringify({ url: 'http://127.0.0.1:8788/img/cover.png' }) });
+  ok(i2.status === 200 && i2.data.ok, '登录后 fetch-image → 200', i2.data);
+  ok(i2.data.name === 'cover.png', '图片文件名取自路径', i2.data.name);
+  ok(i2.data.content === 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64 内容一致', String(i2.data.content).slice(0, 30));
+
+  const i3 = await api('/api/v1/fetch-image', { method: 'POST', headers: { cookie, 'content-type': 'application/json' }, body: JSON.stringify({ url: 'http://127.0.0.1:8788/mock-not-image' }) });
+  ok(i3.status === 502 && i3.data.error === 'not_image', '非图片 → 502 not_image', i3.data);
+}
+
 server.close();
 console.log(`\n结果：${pass} 通过 / ${fail} 失败`);
 process.exit(fail ? 1 : 0);
