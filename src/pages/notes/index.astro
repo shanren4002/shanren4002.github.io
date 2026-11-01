@@ -17,6 +17,10 @@ for (const n of sorted) {
 }
 const categories = [...byCategory.entries()].sort((a, b) => b[1].length - a[1].length);
 
+// 分类装饰色（仅装饰：卡片色条/节头线，按分类序循环 4 色；不做正文文本）
+const catColor = new Map<string, number>();
+categories.forEach(([cat], i) => catColor.set(cat, i % 4));
+
 // 编辑排版：pinned 优先上大卡；否则每分类最新一篇（分类 ≥3 篇时）上大卡
 const featuredSlugs = new Set<string>();
 for (const [, list] of categories) {
@@ -30,7 +34,11 @@ for (const [, list] of categories) {
 
 const fmt = (d: Date) =>
   d.toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' });
+const md = (d: Date) =>
+  `${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
+const yy = (d: Date) => String(d.getFullYear()).slice(2);
 const idx = (i: number) => String(i + 1).padStart(2, '0');
+const latest = sorted[0]?.data.date;
 ---
 
 <Base title="笔记" description="学习笔记归档：AI / FastAPI / Python / HTTP / 智能客服">
@@ -38,13 +46,29 @@ const idx = (i: number) => String(i + 1).padStart(2, '0');
     <header class="page-head">
       <p class="head-kicker">ARCHIVE · 学习归档</p>
       <h1 class="head-title"><span class="hl">笔记</span></h1>
-      <p class="head-meta">
-        <span class="stat-num">{sorted.length}</span> 篇 · <span class="stat-num">{categories.length}</span> 个分类
-        {isDev && <span class="dev-hint">（dev 预览：含草稿，发布后仅可见 published）</span>}
-      </p>
+      <div class="head-stats">
+        <div class="stat">
+          <span class="stat-num">{sorted.length}</span>
+          <span class="stat-label">篇笔记</span>
+        </div>
+        <div class="stat">
+          <span class="stat-num">{categories.length}</span>
+          <span class="stat-label">个分类</span>
+        </div>
+        {latest && (
+          <div class="stat">
+            <span class="stat-num stat-date">{md(latest)}</span>
+            <span class="stat-label">最近更新 · {yy(latest)}</span>
+          </div>
+        )}
+      </div>
+      {isDev && <p class="dev-hint">dev 预览：含草稿，发布后仅可见 published</p>}
     </header>
 
     <div class="search-box">
+      <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+        <circle cx="11" cy="11" r="7" /><path d="m20 20-3.8-3.8" />
+      </svg>
       <input
         id="note-search"
         type="search"
@@ -75,17 +99,25 @@ const idx = (i: number) => String(i + 1).padStart(2, '0');
     )}
 
     {categories.map(([cat, list], i) => (
-      <section class="cat-section" id={`cat-${encodeURIComponent(cat)}`}>
+      <section class="cat-section" id={`cat-${encodeURIComponent(cat)}`} data-ci={catColor.get(cat)}>
         <h2 class="cat-head">
           <span class="cat-index">{idx(i)}</span>
           <span class="cat-name">{cat}</span>
+          <span class="cat-line" aria-hidden="true"></span>
           <span class="cat-count">{list.length} 篇</span>
         </h2>
         <div class="note-list">
-          {list.map((n) => (
-            <article class:list={['note-card', { featured: featuredSlugs.has(n.data.slug) }]}>
+          {list.map((n, j) => (
+            <article
+              class:list={['note-card', { featured: featuredSlugs.has(n.data.slug) }]}
+              style={`--d:${Math.min(j, 6) * 55}ms`}
+            >
+              <span class="card-bar" aria-hidden="true"></span>
               <div class="note-meta">
-                <time datetime={n.data.date.toISOString()}>{fmt(n.data.date)}</time>
+                <time datetime={n.data.date.toISOString()}>
+                  <span class="d-md">{md(n.data.date)}</span>
+                  <span class="d-y">{yy(n.data.date)}</span>
+                </time>
                 {featuredSlugs.has(n.data.slug) && <span class="badge-new">最新</span>}
                 {n.data.status === 'draft' && isDev && <span class="badge-draft">草稿</span>}
               </div>
@@ -224,6 +256,26 @@ const idx = (i: number) => String(i + 1).padStart(2, '0');
         .join('');
     }
   }
+
+  // —— 滚动进入动画（无 JS 时全部可见；reduced-motion 走 CSS 降级）——
+  document.documentElement.classList.add('js');
+  const revealTargets = document.querySelectorAll<HTMLElement>('.cat-section, .note-card');
+  if ('IntersectionObserver' in window) {
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          if (e.isIntersecting) {
+            e.target.classList.add('in');
+            io.unobserve(e.target);
+          }
+        }
+      },
+      { rootMargin: '0px 0px -36px 0px' },
+    );
+    revealTargets.forEach((el) => io.observe(el));
+  } else {
+    revealTargets.forEach((el) => el.classList.add('in'));
+  }
 </script>
 
 <style>
@@ -231,7 +283,7 @@ const idx = (i: number) => String(i + 1).padStart(2, '0');
     padding: var(--sp-5) 0;
   }
 
-  /* —— 页头：编辑式大标题 + 大数字统计 —— */
+  /* —— 页头：编辑式大标题 + 三联数据条 —— */
   .page-head {
     margin-bottom: var(--sp-5);
   }
@@ -264,20 +316,44 @@ const idx = (i: number) => String(i + 1).padStart(2, '0');
     border-radius: 0.14em;
     z-index: -1;
   }
-  .head-meta {
-    margin: var(--sp-3) 0 0;
-    font-size: 1rem;
-    color: var(--text-2);
+  /* 数据条：mono 大数字 + 小标签 + 短黄线 */
+  .head-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-4) var(--sp-5);
+    margin-top: var(--sp-4);
+  }
+  .stat {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
   }
   .stat-num {
     font-family: var(--font-mono);
-    font-size: 1.5rem;
+    font-size: 1.55rem;
     font-weight: 600;
+    line-height: 1.1;
+    color: var(--text);
+  }
+  .stat-num::after {
+    content: '';
+    display: block;
+    width: 26px;
+    height: 3px;
+    margin-top: 7px;
+    background: var(--hl);
+    border-radius: 2px;
+  }
+  .stat-label {
+    font-size: 0.78rem;
+    color: var(--text-2);
+    letter-spacing: 0.04em;
+  }
+  .stat-date {
     color: var(--accent-ink);
-    padding: 0 2px;
   }
   .dev-hint {
-    margin-left: var(--sp-2);
+    margin: var(--sp-3) 0 0;
     font-size: 0.85rem;
     color: var(--accent-ink);
   }
@@ -302,11 +378,12 @@ const idx = (i: number) => String(i + 1).padStart(2, '0');
     border: 1px solid var(--line);
     border-radius: var(--radius);
     padding: var(--sp-1) var(--sp-2);
-    transition: border-color 150ms ease, color 150ms ease;
+    transition: border-color 150ms ease, color 150ms ease, transform 150ms ease;
   }
   .cat-jump a:hover {
     border-color: var(--accent-ink);
     color: var(--accent-ink);
+    transform: translateY(-1px);
   }
   .jump-index {
     font-family: var(--font-mono);
@@ -319,17 +396,21 @@ const idx = (i: number) => String(i + 1).padStart(2, '0');
     color: var(--text-2);
   }
 
-  /* —— 分类节头：大号分类名 + 编号 —— */
+  /* —— 分类节：装饰色按分类循环（仅色条/节头线，不做正文）—— */
   .cat-section {
+    --ci: var(--accent);
     margin-bottom: var(--sp-6);
   }
+  .cat-section[data-ci='1'] { --ci: var(--accent-2); }
+  .cat-section[data-ci='2'] { --ci: var(--hover); }
+  .cat-section[data-ci='3'] { --ci: var(--hl); }
   .cat-head {
     display: flex;
     align-items: baseline;
     gap: var(--sp-2);
     margin: 0 0 var(--sp-4);
     padding-bottom: var(--sp-2);
-    border-bottom: 2px solid var(--line);
+    border-bottom: 2px solid var(--ci);
   }
   .cat-index {
     font-family: var(--font-mono);
@@ -341,8 +422,13 @@ const idx = (i: number) => String(i + 1).padStart(2, '0');
     font-weight: 600;
     line-height: 1.2;
   }
+  .cat-line {
+    flex: 1;
+    align-self: center;
+    height: 1px;
+    background: var(--line);
+  }
   .cat-count {
-    margin-left: auto;
     font-family: var(--font-mono);
     font-size: 0.8rem;
     color: var(--text-2);
@@ -359,9 +445,18 @@ const idx = (i: number) => String(i + 1).padStart(2, '0');
     background: var(--surface);
     border: 1px solid var(--line);
     border-radius: var(--radius-lg);
-    padding: var(--sp-3) var(--sp-4);
+    padding: var(--sp-3) var(--sp-4) var(--sp-3) calc(var(--sp-4) + 6px);
     overflow: hidden;
     transition: transform 160ms ease, border-color 160ms ease;
+  }
+  /* 分类色条（常驻，装饰） */
+  .card-bar {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 4px;
+    background: var(--ci);
   }
   /* hover 彩铅顶条（与首页 marker 同语言） */
   .note-card::before {
@@ -392,6 +487,14 @@ const idx = (i: number) => String(i + 1).padStart(2, '0');
     color: var(--text-2);
     margin-bottom: var(--sp-1);
   }
+  .note-meta .d-md {
+    font-weight: 600;
+    color: var(--text-2);
+  }
+  .note-meta .d-y {
+    font-size: 0.72rem;
+    opacity: 0.8;
+  }
   .badge-new {
     font-family: var(--font-sans);
     background: var(--tag-bg);
@@ -416,9 +519,15 @@ const idx = (i: number) => String(i + 1).padStart(2, '0');
   .note-card h3 a {
     color: var(--text);
     text-decoration: none;
+    background-image: linear-gradient(var(--accent-ink), var(--accent-ink));
+    background-size: 0% 2px;
+    background-position: 0 100%;
+    background-repeat: no-repeat;
+    transition: background-size 200ms ease, color 150ms ease;
   }
   .note-card:hover h3 a {
     color: var(--accent-ink);
+    background-size: 100% 2px;
   }
   .note-summary {
     margin: 0 0 var(--sp-2);
@@ -442,7 +551,13 @@ const idx = (i: number) => String(i + 1).padStart(2, '0');
     padding: 0 6px;
   }
 
-  /* featured 大卡：跨两列 + 更大标题 + 三行摘要 */
+  /* featured 大卡：跨两列 + 更大标题 + 三行摘要 + 加粗色条 */
+  .note-card.featured {
+    padding-left: calc(var(--sp-4) + 10px);
+  }
+  .note-card.featured .card-bar {
+    width: 8px;
+  }
   .note-card.featured h3 {
     font-size: clamp(1.3rem, 2.2vw, 1.6rem);
   }
@@ -454,7 +569,25 @@ const idx = (i: number) => String(i + 1).padStart(2, '0');
     .note-card.featured {
       grid-column: span 2;
       padding: var(--sp-4);
+      padding-left: calc(var(--sp-4) + 10px);
     }
+  }
+
+  /* —— 滚动进入动画（html.js 下初始隐藏；reduced-motion 直接可见）—— */
+  html.js .cat-section,
+  html.js .note-card {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  html.js .cat-section.in,
+  html.js .note-card.in {
+    opacity: 1;
+    transform: none;
+    transition: opacity 480ms ease var(--d, 0ms), transform 480ms ease var(--d, 0ms),
+      border-color 160ms ease;
+  }
+  html.js .note-card.in:hover {
+    transform: translateY(-2px);
   }
 
   .empty {
@@ -470,13 +603,34 @@ const idx = (i: number) => String(i + 1).padStart(2, '0');
   }
 
   @media (prefers-reduced-motion: reduce) {
+    html.js .cat-section,
+    html.js .note-card,
+    html.js .cat-section.in,
+    html.js .note-card.in {
+      opacity: 1;
+      transform: none;
+      transition: none;
+    }
+    html.js .note-card.in:hover {
+      transform: none;
+    }
     .note-card:hover {
       transform: none;
     }
     .note-card::before {
       transition: none;
     }
+    .note-card h3 a {
+      transition: none;
+    }
     .cat-jump a {
+      transition: none;
+      transform: none;
+    }
+    .search-hit:hover {
+      transform: none;
+    }
+    .search-box input {
       transition: none;
     }
   }
@@ -488,6 +642,14 @@ const idx = (i: number) => String(i + 1).padStart(2, '0');
     align-items: center;
     margin-bottom: var(--sp-3);
   }
+  .search-icon {
+    position: absolute;
+    left: 15px;
+    width: 16px;
+    height: 16px;
+    color: var(--text-2);
+    pointer-events: none;
+  }
   .search-box input {
     width: 100%;
     font: inherit;
@@ -496,7 +658,7 @@ const idx = (i: number) => String(i + 1).padStart(2, '0');
     background: var(--surface);
     border: 1px solid var(--line);
     border-radius: 999px;
-    padding: 10px 40px 10px 18px;
+    padding: 10px 40px 10px 40px;
     outline: none;
     transition: border-color 150ms ease, box-shadow 150ms ease;
   }
@@ -588,13 +750,5 @@ const idx = (i: number) => String(i + 1).padStart(2, '0');
     color: var(--text);
     border-radius: 2px;
     padding: 0 1px;
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .search-hit:hover {
-      transform: none;
-    }
-    .search-box input {
-      transition: none;
-    }
   }
 </style>

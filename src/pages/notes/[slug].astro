@@ -13,18 +13,36 @@ export async function getStaticPaths() {
 const { note } = Astro.props;
 const { Content } = await render(note);
 
-const fmt = (d: Date) =>
-  d.toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' });
+// 邻篇导航（按日期全局排序：prev=更新一篇，next=更旧一篇）
+const allNotes = await getCollection('notes');
+const ordered = (
+  import.meta.env.DEV ? allNotes : allNotes.filter((n) => n.data.status === 'published')
+)
+  .slice()
+  .sort((a, b) => b.data.date.getTime() - a.data.date.getTime());
+const at = ordered.findIndex((n) => n.data.slug === note.data.slug);
+const nav = (n: any) => ({ slug: n.data.slug, title: n.data.title, category: n.data.category });
+const prev = at > 0 ? nav(ordered[at - 1]) : null;
+const next = at >= 0 && at < ordered.length - 1 ? nav(ordered[at + 1]) : null;
+
+const iso = (d: Date) => d.toISOString().slice(0, 10);
+// 阅读时长估算：剔除代码块后按 ~400 字/分钟
+const plain = note.body.replace(/```[\s\S]*?```/g, '').replace(/\s/g, '');
+const minutes = Math.max(1, Math.round(plain.length / 400));
 ---
 
 <Base title={`${note.data.title} · 笔记`} description={note.data.summary}>
+  <!-- 阅读进度条（功能件，reduced-motion 下仍显示，仅无平滑动画） -->
+  <div class="read-progress" aria-hidden="true"><span id="read-bar"></span></div>
+
   <article class="note-detail">
     <nav class="back-nav"><a href="/notes/">← 返回笔记列表</a></nav>
 
     <header class="note-head">
       <div class="note-meta">
         <span class="cat-chip" data-pagefind-meta="category">{note.data.category}</span>
-        <time datetime={note.data.date.toISOString()}>{fmt(note.data.date)}</time>
+        <time datetime={note.data.date.toISOString()}>{iso(note.data.date)}</time>
+        <span class="read-time">约 {minutes} 分钟</span>
         {note.data.status === 'draft' && import.meta.env.DEV && <span class="badge-draft">草稿预览</span>}
       </div>
       <h1 data-pagefind-meta="title">{note.data.title}</h1>
@@ -35,19 +53,158 @@ const fmt = (d: Date) =>
       )}
     </header>
 
+    <!-- 目录：JS 从正文标题自动生成；无标题时保持隐藏 -->
+    <nav class="toc" id="toc" hidden aria-label="本文目录"></nav>
+
     <div class="prose" data-pagefind-body>
       <Content />
     </div>
+
+    {(prev || next) && (
+      <nav class="note-nav" aria-label="邻近笔记">
+        {prev ? (
+          <a class="nn-card" href={`/notes/${prev.slug}/`}>
+            <span class="nn-dir">← 更新一篇</span>
+            <span class="nn-title">{prev.title}</span>
+            <span class="nn-cat">{prev.category}</span>
+          </a>
+        ) : <span />}
+        {next ? (
+          <a class="nn-card nn-next" href={`/notes/${next.slug}/`}>
+            <span class="nn-dir">更旧一篇 →</span>
+            <span class="nn-title">{next.title}</span>
+            <span class="nn-cat">{next.category}</span>
+          </a>
+        ) : <span />}
+      </nav>
+    )}
 
     <footer class="note-foot">
       {note.data.source && <p class="source">归档来源：<code>{note.data.source}</code></p>}
       <p><a href="/notes/">← 返回笔记列表</a></p>
     </footer>
   </article>
+
+  <button type="button" class="to-top" id="to-top" hidden aria-label="返回顶部">↑</button>
 </Base>
 
+<script>
+  // —— 阅读进度条 + 返回顶部（rAF 节流；reduced-motion 仅去平滑）——
+  const bar = document.getElementById('read-bar');
+  const toTop = document.getElementById('to-top') as HTMLButtonElement | null;
+  const calm = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  let ticking = false;
+  const onScroll = () => {
+    if (ticking) return;
+    ticking = true;
+    requestAnimationFrame(() => {
+      const h = document.documentElement;
+      const max = h.scrollHeight - h.clientHeight;
+      const p = max > 0 ? Math.min(1, Math.max(0, h.scrollTop / max)) : 0;
+      if (bar) bar.style.transform = `scaleX(${p})`;
+      if (toTop) {
+        const show = h.scrollTop > 600;
+        toTop.classList.toggle('show', show);
+        toTop.hidden = !show;
+      }
+      ticking = false;
+    });
+  };
+  document.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+
+  toTop?.addEventListener('click', () => {
+    window.scrollTo({ top: 0, behavior: calm ? 'auto' : 'smooth' });
+  });
+
+  // —— 目录：正文 h1/h2/h3 自动生成 + 锚点 + 当前节高亮 ——
+  const prose = document.querySelector('.prose');
+  const toc = document.getElementById('toc');
+  if (prose && toc) {
+    const heads = Array.from(prose.querySelectorAll('h1, h2, h3'));
+    if (heads.length >= 2) {
+      const pad = (i: number) => String(i + 1).padStart(2, '0');
+      const links: HTMLAnchorElement[] = [];
+      const list = document.createElement('ol');
+      list.className = 'toc-list';
+      heads.forEach((h, i) => {
+        const id = `sec-${i}`;
+        h.id = id;
+        const headText = (h.textContent ?? '').trim(); // 先取文案，再追加锚点（避免混入 '#'）
+        const a = document.createElement('a');
+        a.className = 'head-anchor';
+        a.href = `#${id}`;
+        a.setAttribute('aria-label', '复制本节链接');
+        a.textContent = '#';
+        h.appendChild(a);
+
+        const li = document.createElement('li');
+        li.className = `toc-${h.tagName.toLowerCase()}`;
+        const link = document.createElement('a');
+        link.href = `#${id}`;
+        link.innerHTML = `<span class="toc-no">${pad(i)}</span><span class="toc-t"></span>`;
+        (link.querySelector('.toc-t') as HTMLElement).textContent = headText;
+        li.appendChild(link);
+        list.appendChild(li);
+        links.push(link);
+      });
+      const title = document.createElement('p');
+      title.className = 'toc-title';
+      title.textContent = '本文目录';
+      toc.append(title, list);
+      toc.hidden = false;
+
+      // 当前节：最后一个越过阅读线的标题
+      const syncActive = () => {
+        let cur = 0;
+        heads.forEach((h, i) => {
+          if (h.getBoundingClientRect().top < 120) cur = i;
+        });
+        links.forEach((l, i) => l.classList.toggle('active', i === cur));
+      };
+      let t2 = false;
+      document.addEventListener(
+        'scroll',
+        () => {
+          if (t2) return;
+          t2 = true;
+          requestAnimationFrame(() => {
+            syncActive();
+            t2 = false;
+          });
+        },
+        { passive: true },
+      );
+      syncActive();
+    }
+  }
+</script>
+
 <style>
+  /* —— 阅读进度条：置顶 3px，hl → accent 渐变 —— */
+  .read-progress {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    z-index: 60;
+    background: transparent;
+    pointer-events: none;
+  }
+  .read-progress span {
+    display: block;
+    height: 100%;
+    background: linear-gradient(90deg, var(--hl), var(--accent));
+    transform: scaleX(0);
+    transform-origin: left;
+  }
+
   .note-detail {
+    /* width:100% 必须显式：.page 是 flex column，子项仅靠 margin:auto 会按
+       fit-content 定宽，被 prose 内长行代码块（min-content 457px）撑破 375px 视口 */
+    width: 100%;
     max-width: 760px;
     margin: 0 auto;
     padding: var(--sp-5) 0;
@@ -57,24 +214,35 @@ const fmt = (d: Date) =>
     font-size: 0.9rem;
   }
   .back-nav a {
+    display: inline-block;
     color: var(--accent-ink);
     text-decoration: none;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    border-radius: 999px;
+    padding: 4px 14px;
+    transition: border-color 150ms ease, color 150ms ease, transform 150ms ease;
   }
   .back-nav a:hover {
-    text-decoration: underline;
+    border-color: var(--accent-ink);
+    transform: translateX(-2px);
   }
+
+  /* —— 笔记头部：分类/日期/时长 meta 行 + 大标题 —— */
   .note-head {
     border-bottom: 2px solid var(--line);
-    padding-bottom: var(--sp-3);
+    padding-bottom: var(--sp-4);
     margin-bottom: var(--sp-4);
   }
   .note-meta {
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
     gap: var(--sp-2);
-    font-size: 0.85rem;
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
     color: var(--text-2);
-    margin-bottom: var(--sp-2);
+    margin-bottom: var(--sp-3);
   }
   .cat-chip {
     background: var(--tag-bg);
@@ -82,6 +250,11 @@ const fmt = (d: Date) =>
     border-radius: 4px;
     padding: 0 var(--sp-1);
     font-size: 0.8rem;
+  }
+  .read-time::before {
+    content: '◷';
+    margin-right: 4px;
+    color: var(--accent-ink);
   }
   .badge-draft {
     background: var(--surface-2);
@@ -91,9 +264,10 @@ const fmt = (d: Date) =>
     font-size: 0.75rem;
   }
   .note-head h1 {
-    margin: 0 0 var(--sp-2);
-    font-size: 1.7rem;
-    line-height: 1.4;
+    margin: 0 0 var(--sp-3);
+    font-size: clamp(1.7rem, 4.4vw, 2.4rem);
+    line-height: 1.35;
+    letter-spacing: 0.01em;
   }
   .tag-row {
     display: flex;
@@ -103,7 +277,111 @@ const fmt = (d: Date) =>
   .tag {
     font-size: 0.78rem;
     color: var(--text-2);
+    background: var(--surface-2);
+    border-radius: 4px;
+    padding: 1px 8px;
   }
+
+  /* —— 目录卡片 —— */
+  .toc {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-left: 4px solid var(--accent);
+    border-radius: var(--radius-lg);
+    padding: var(--sp-3) var(--sp-4);
+    margin-bottom: var(--sp-5);
+  }
+  .toc-title {
+    margin: 0 0 var(--sp-2);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 0.24em;
+    color: var(--accent-ink);
+  }
+  .toc-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .toc-list li {
+    margin: 0;
+  }
+  .toc-list a {
+    display: flex;
+    align-items: baseline;
+    gap: var(--sp-2);
+    padding: 3px var(--sp-1);
+    border-radius: 6px;
+    color: var(--text-2);
+    text-decoration: none;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    transition: color 150ms ease, background 150ms ease;
+  }
+  .toc-list a:hover {
+    color: var(--accent-ink);
+    background: var(--surface-2);
+  }
+  .toc-list a.active {
+    color: var(--accent-ink);
+    background: color-mix(in srgb, var(--hl) 34%, transparent);
+  }
+  .toc-no {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--accent-ink);
+    flex: none;
+  }
+  .toc-list .toc-h2 a,
+  .toc-list .toc-h3 a {
+    padding-left: var(--sp-4);
+  }
+  .toc-list .toc-h3 a {
+    font-size: 0.86rem;
+  }
+
+  /* —— 邻篇导航 —— */
+  .note-nav {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--sp-3);
+    margin-top: var(--sp-6);
+  }
+  .nn-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-1);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    padding: var(--sp-3) var(--sp-4);
+    text-decoration: none;
+    color: var(--text);
+    transition: border-color 150ms ease, transform 150ms ease;
+  }
+  .nn-card:hover {
+    border-color: var(--accent-ink);
+    transform: translateY(-2px);
+  }
+  .nn-next {
+    text-align: right;
+  }
+  .nn-dir {
+    font-family: var(--font-mono);
+    font-size: 0.74rem;
+    letter-spacing: 0.08em;
+    color: var(--accent-ink);
+  }
+  .nn-title {
+    font-weight: 600;
+    font-size: 0.98rem;
+    line-height: 1.45;
+  }
+  .nn-cat {
+    font-size: 0.76rem;
+    color: var(--text-2);
+  }
+
   .note-foot {
     margin-top: var(--sp-5);
     padding-top: var(--sp-3);
@@ -120,5 +398,58 @@ const fmt = (d: Date) =>
     background: var(--surface-2);
     border-radius: 4px;
     padding: 0 4px;
+  }
+
+  /* —— 返回顶部 —— */
+  .to-top {
+    position: fixed;
+    right: 22px;
+    bottom: 26px;
+    width: 42px;
+    height: 42px;
+    border: 1px solid var(--line);
+    border-radius: 50%;
+    background: var(--surface);
+    color: var(--accent-ink);
+    font-size: 1.05rem;
+    line-height: 1;
+    cursor: pointer;
+    opacity: 0;
+    transform: translateY(8px);
+    transition: opacity 200ms ease, transform 200ms ease, border-color 150ms ease;
+  }
+  .to-top.show {
+    opacity: 1;
+    transform: none;
+  }
+  .to-top:hover {
+    border-color: var(--accent-ink);
+  }
+
+  @media (max-width: 600px) {
+    .note-nav {
+      grid-template-columns: 1fr;
+    }
+    .nn-next {
+      text-align: left;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .back-nav a,
+    .nn-card,
+    .to-top,
+    .toc-list a {
+      transition: none;
+    }
+    .to-top {
+      transform: none;
+    }
+    .nn-card:hover {
+      transform: none;
+    }
+    .back-nav a:hover {
+      transform: none;
+    }
   }
 </style>

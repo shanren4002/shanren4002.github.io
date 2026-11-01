@@ -14,7 +14,7 @@
   margin-top: 0;
 }
 
-/* —— 标题体系 —— */
+/* —— 标题体系（h2/h3/h4 带锚点跳转偏移，避开吸顶导航；h2 彩铅色块）—— */
 .prose h1,
 .prose h2,
 .prose h3,
@@ -24,6 +24,7 @@
   line-height: 1.4;
   margin: var(--sp-5) 0 var(--sp-3);
   font-weight: 600;
+  scroll-margin-top: 84px;
 }
 
 .prose h1 { font-size: 1.6rem; }
@@ -32,10 +33,35 @@
   padding-bottom: var(--sp-1);
   border-bottom: 1px solid var(--line);
 }
+/* h2 前置彩铅竖条（与列表卡分类色条同语言，装饰） */
+.prose h2::before {
+  content: '';
+  display: inline-block;
+  width: 5px;
+  height: 0.8em;
+  margin-right: 0.5em;
+  background: var(--accent);
+  border-radius: 2px;
+  vertical-align: -0.02em;
+}
 .prose h3 { font-size: 1.18rem; }
 .prose h4 { font-size: 1.05rem; }
 .prose h5,
 .prose h6 { font-size: 0.95rem; color: var(--text-2); }
+
+/* 标题锚点（详情页 JS 注入，hover 显现） */
+.prose :is(h2, h3, h4) .head-anchor {
+  margin-left: 0.4em;
+  font-weight: 400;
+  color: var(--accent-ink);
+  text-decoration: none;
+  opacity: 0;
+  transition: opacity 150ms ease;
+}
+.prose :is(h2, h3, h4):hover .head-anchor,
+.prose :is(h2, h3, h4) .head-anchor:focus-visible {
+  opacity: 1;
+}
 
 /* —— 段落与行内元素 —— */
 .prose p {
@@ -47,6 +73,7 @@
   text-decoration: underline;
   text-underline-offset: 3px;
   text-decoration-thickness: 1px;
+  overflow-wrap: anywhere;
 }
 
 .prose a:hover {
@@ -151,14 +178,26 @@
   background: var(--surface);
 }
 
-/* —— 引用 —— */
+/* —— 引用（装饰性引号，纯 CSS 生成）—— */
 .prose blockquote {
+  position: relative;
   margin: var(--sp-4) 0;
-  padding: var(--sp-2) var(--sp-4);
+  padding: var(--sp-2) var(--sp-4) var(--sp-2) calc(var(--sp-4) + 16px);
   border-left: 3px solid var(--accent);
   background: var(--surface);
   border-radius: 0 var(--radius) var(--radius) 0;
   color: var(--text-2);
+}
+.prose blockquote::before {
+  content: '\201C';
+  position: absolute;
+  top: 2px;
+  left: calc(var(--sp-2) + 4px);
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 2.4rem;
+  line-height: 1;
+  color: var(--accent-ink);
+  pointer-events: none;
 }
 
 .prose blockquote p {
@@ -178,6 +217,21 @@
   border-radius: var(--radius);
   border: 1px solid var(--line);
   margin: var(--sp-3) 0;
+}
+
+/* —— 代码块左上角装饰角标（纯 CSS，与深色底对比）—— */
+.prose pre {
+  position: relative;
+}
+.prose pre::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: var(--sp-4);
+  width: 34px;
+  height: 3px;
+  background: var(--hl);
+  border-radius: 0 0 2px 2px;
 }
 
 /* —— 键盘键 / 任务列表语法残留的裸文本兼容 —— */
