@@ -2,39 +2,64 @@
 import Base from '../layouts/Base.astro';
 import { getCollection } from 'astro:content';
 
-// 首页统计口径与列表页一致：dev 含草稿，生产仅 published
-const all = await getCollection('notes');
+// 首页统计口径与各列表页一致：dev 含草稿，生产仅 published
 const isDev = import.meta.env.DEV;
-const visible = isDev ? all : all.filter((n) => n.data.status === 'published');
-const noteCount = visible.length;
-const catCount = new Set(visible.map((n) => n.data.category)).size;
 
-// 项目计数（与项目列表页同口径）
+const allNotes = await getCollection('notes');
+const visibleNotes = isDev ? allNotes : allNotes.filter((n) => n.data.status === 'published');
+const noteCount = visibleNotes.length;
+const catCount = new Set(visibleNotes.map((n) => n.data.category)).size;
+
 const allProjects = await getCollection('projects');
 const visibleProjects = isDev ? allProjects : allProjects.filter((p) => p.data.status === 'published');
 const projectCount = visibleProjects.length;
 const projectCatCount = new Set(visibleProjects.map((p) => p.data.category)).size;
 
-// 画廊计数（与画廊页同口径：生产仅 published）
 const galleryEntry = await getCollection('gallery');
 const galleryItems = galleryEntry[0]?.data.items ?? [];
-const galleryCount = (isDev ? galleryItems : galleryItems.filter((i) => i.status === 'published')).length;
+const visibleGallery = isDev ? galleryItems : galleryItems.filter((i) => i.status === 'published');
+const galleryCount = visibleGallery.length;
+
+// 首屏/入口大图：按 slug 精选已发布画廊作品；若作品被下架则跳过（不空窗、不破图）
+const pickBySlug = (...slugs: string[]) =>
+  slugs
+    .map((s) => visibleGallery.find((i) => i.slug === s))
+    .filter((it): it is NonNullable<typeof it> => Boolean(it));
+const heroImages = pickBySlug('20261031-sakura-torii-01', '20261031-starry-train-01', '20261031-moon-gate-dusk-01');
+const entryImages = pickBySlug('20261031-wall-e-stars-01', '20261031-harbor-studio-01', '20261031-dusk-portrait-01');
+const imgUrl = (it: { src: string }) => `/images/gallery/${it.src}`;
 ---
 
 <Base title="作品集 · 个人档案" description="个人作品集：笔记档案、项目展示与艺术画廊" wide>
-  <!-- ① 首屏：超大标题 + 彩铅涂鸦（makemepulse 式一句话一面墙） -->
+  <!-- ① 首屏：全屏画境——3 张大图 15s 交叉淡入 + 滚动视差（图慢移 / 标题上移淡出） -->
   <section class="hero">
+    {heroImages.length > 0 && (
+      <div class="hero-bg" id="heroBg">
+        {heroImages.map((it, i) => (
+          <img
+            class="img"
+            src={imgUrl(it)}
+            alt=""
+            width="1920"
+            height="1080"
+            loading="eager"
+            fetchpriority={i === 0 ? 'high' : 'auto'}
+            decoding="async"
+          />
+        ))}
+      </div>
+    )}
+    <div class="hero-scrim" aria-hidden="true"></div>
+
     <div class="hero-top">
-      <span class="kicker">PORTFOLIO · 个人作品集</span>
-      <span class="kicker">EST. 2026</span>
+      <span>PORTFOLIO · 个人作品集</span>
+      <span>EST. 2026</span>
     </div>
 
-    <div class="hero-center">
-      <h1 class="hero-title">
-        <span class="line line-1">你好，这里是我的</span>
-        <span class="line line-2"><span class="mark">作品集</span>。</span>
-      </h1>
-      <p class="hero-sub">笔记档案 · 项目展示 · 艺术画廊 —— 持续归档中</p>
+    <div class="hero-center" id="heroCenter">
+      <p class="kicker-line">笔记档案 · 项目展示 · 艺术画廊</p>
+      <h1 class="hero-title">你好，这里是我的<br /><span class="mark">作品集</span>。</h1>
+      <p class="hero-sub">持续归档中 —— 每一篇笔记、每一个项目、每一张画，都留在这里</p>
     </div>
 
     <div class="hero-bottom">
@@ -46,160 +71,81 @@ const galleryCount = (isDev ? galleryItems : galleryItems.filter((i) => i.status
         </svg>
       </span>
     </div>
-
-    <!-- 装饰涂鸦：随鼠标轻微视差，reduced-motion / 触屏自动静止 -->
-    <svg class="doodle d-star" width="44" height="44" viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M12 0c.7 7.2 5.2 11.7 12 12-6.8.3-11.3 4.8-12 12-.7-7.2-5.2-11.7-12-12C6.8 11.7 11.3 7.2 12 0z" style="fill: var(--accent-ink)" />
-    </svg>
-    <svg class="doodle d-squiggle" width="110" height="14" viewBox="0 0 110 14" aria-hidden="true">
-      <path d="M2 8 Q 15 2, 28 8 T 54 8 T 80 7 T 108 8" fill="none" style="stroke: var(--hover)" stroke-width="3" stroke-linecap="round" />
-    </svg>
-    <svg class="doodle d-dots" width="46" height="14" viewBox="0 0 46 14" aria-hidden="true">
-      <circle cx="7" cy="7" r="5" style="fill: var(--accent-2)" />
-      <circle cx="23" cy="7" r="3.5" style="fill: var(--accent-2)" opacity=".6" />
-      <circle cx="36" cy="7" r="2.5" style="fill: var(--accent-2)" opacity=".35" />
-    </svg>
   </section>
 
-  <!-- ② 滚动横带：墨色斜切 + 彩铅双色交替（makemepulse 式跑马灯） -->
+  <!-- ② 滚动横带：墨色斜切 + 双色交替（112vw + 外层裁剪，375px 不横滚） -->
   <div class="band-wrap" aria-hidden="true">
     <div class="band">
       <div class="band-track">
-        <span>笔记 · 项目 · 画廊 · 持续归档中 ·&nbsp;</span>
-        <span>笔记 · 项目 · 画廊 · 持续归档中 ·&nbsp;</span>
+        <span>笔记 · 项目 · 画廊 · 持续归档中 ·&nbsp;</span><span>笔记 · 项目 · 画廊 · 持续归档中 ·&nbsp;</span>
       </div>
     </div>
   </div>
 
-  <!-- ③ 大主张：全屏一句宣言 -->
-  <section class="section statement-section">
-    <div class="section-inner">
-      <p class="statement reveal">把学过的东西，<br />都<span class="mark">留在这里</span>。</p>
-      <p class="statement-sub reveal">一句话归档 · 双通道更新 · 全部公开</p>
-    </div>
-  </section>
-
-  <!-- ④ 三入口：编辑式大列表（hover 彩铅横扫） -->
-  <section class="section entries-section">
-    <div class="section-inner">
-      <p class="section-label reveal">里面有什么</p>
-      <nav class="entries">
-        <a class="entry reveal" href="/notes/">
-          <span class="entry-index">01</span>
+  <!-- ③ 三入口：大图卡（hover 放大 + 箭头点亮），计数与列表页同口径 -->
+  <section class="entries">
+    <div class="entries-inner">
+      <p class="sec-label">WHAT'S INSIDE</p>
+      <h2 class="sec-title">里面有什么</h2>
+      <div class="entry-grid">
+        <a class="entry-card" href="/notes/">
+          {entryImages[0] && <img src={imgUrl(entryImages[0])} alt="" width="1920" height="1080" loading="lazy" decoding="async" />}
+          <span class="entry-arrow" aria-hidden="true">→</span>
           <span class="entry-body">
-            <span class="entry-title">笔记档案</span>
+            <span class="entry-idx">01</span>
+            <span class="entry-name">笔记档案</span>
             <span class="entry-meta">{noteCount} 篇 · {catCount} 个分类 · AI / FastAPI / Python / 智能客服</span>
           </span>
-          <span class="entry-arrow" aria-hidden="true">→</span>
         </a>
-        <a class="entry reveal" href="/projects/">
-          <span class="entry-index">02</span>
+        <a class="entry-card" href="/projects/">
+          {entryImages[1] && <img src={imgUrl(entryImages[1])} alt="" width="1920" height="1080" loading="lazy" decoding="async" />}
+          <span class="entry-arrow" aria-hidden="true">→</span>
           <span class="entry-body">
-            <span class="entry-title">项目展示</span>
+            <span class="entry-idx">02</span>
+            <span class="entry-name">项目展示</span>
             <span class="entry-meta">{projectCount} 个 · {projectCatCount} 个分类 · 智能体 / 全栈 / 工具</span>
           </span>
-          <span class="entry-arrow" aria-hidden="true">→</span>
         </a>
-        <a class="entry reveal" href="/gallery/">
-          <span class="entry-index">03</span>
+        <a class="entry-card" href="/gallery/">
+          {entryImages[2] && <img src={imgUrl(entryImages[2])} alt="" width="1920" height="1080" loading="lazy" decoding="async" />}
+          <span class="entry-arrow" aria-hidden="true">→</span>
           <span class="entry-body">
-            <span class="entry-title">艺术画廊</span>
+            <span class="entry-idx">03</span>
+            <span class="entry-name">艺术画廊</span>
             <span class="entry-meta">{galleryCount} 张 · 艺术收藏 · 持续归档中</span>
           </span>
-          <span class="entry-arrow" aria-hidden="true">→</span>
         </a>
-      </nav>
-    </div>
-  </section>
-
-  <!-- ⑤ 施工进度：里程碑时间线 -->
-  <section class="section journey-section">
-    <div class="section-inner">
-      <p class="section-label reveal">这个站是怎么长出来的</p>
-      <ol class="journey reveal">
-        <li class="ms done">
-          <span class="ms-dot" aria-hidden="true"></span>
-          <span class="ms-name">M0 骨架上线</span>
-        </li>
-        <li class="ms done">
-          <span class="ms-dot" aria-hidden="true"></span>
-          <span class="ms-name">M1 · {noteCount} 篇笔记</span>
-        </li>
-        <li class="ms current">
-          <span class="ms-dot" aria-hidden="true"></span>
-          <span class="ms-name">M2 项目档案</span>
-          <span class="ms-tag">进行中</span>
-        </li>
-        <li class="ms">
-          <span class="ms-dot" aria-hidden="true"></span>
-          <span class="ms-name">M3 画廊 + 图片管线</span>
-        </li>
-        <li class="ms">
-          <span class="ms-dot" aria-hidden="true"></span>
-          <span class="ms-name">M3.5 后台上传</span>
-        </li>
-        <li class="ms">
-          <span class="ms-dot" aria-hidden="true"></span>
-          <span class="ms-name">M4 验收上线</span>
-        </li>
-      </ol>
-    </div>
-  </section>
-
-  <!-- ⑥ 收尾 CTA：核心价值主张做成超大引言 -->
-  <section class="section cta-section">
-    <div class="section-inner">
-      <p class="section-label reveal">归档方式</p>
-      <p class="cta-quote reveal">「帮我把这 <span class="mark">xxx</span><br />上传到我的作品集」</p>
-      <p class="cta-sub reveal">对 AI 说这一句，归档就完成了（主通道）· 网页后台上传为辅通道（M3.5 上线）</p>
+      </div>
     </div>
   </section>
 </Base>
 
 <script>
-  document.documentElement.classList.add('js');
-
-  // 滚动渐显：进入视口一次后即取消观察
-  const reveals = document.querySelectorAll('.reveal');
-  if ('IntersectionObserver' in window) {
-    const io = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (entry.isIntersecting) {
-            entry.target.classList.add('in-view');
-            io.unobserve(entry.target);
-          }
-        }
-      },
-      { threshold: 0.15, rootMargin: '0px 0px -6% 0px' },
-    );
-    reveals.forEach((el) => io.observe(el));
-  } else {
-    reveals.forEach((el) => el.classList.add('in-view'));
-  }
-
-  // 首屏涂鸦鼠标视差：rAF 节流；reduced-motion 与触屏跳过
-  const hero = document.querySelector<HTMLElement>('.hero');
+  // 首屏滚动视差：rAF 节流 + passive；reduced-motion 直接跳过（CSS 侧交叉淡入/跑马灯同步降级）
   const calm = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const fine = window.matchMedia('(pointer: fine)').matches;
-  if (hero && fine && !calm) {
-    let frame = 0;
-    hero.addEventListener('mousemove', (event) => {
-      if (frame) return;
-      frame = requestAnimationFrame(() => {
-        const rect = hero.getBoundingClientRect();
-        const x = (event.clientX - rect.left) / rect.width - 0.5;
-        const y = (event.clientY - rect.top) / rect.height - 0.5;
-        hero.style.setProperty('--mx', x.toFixed(3));
-        hero.style.setProperty('--my', y.toFixed(3));
-        frame = 0;
+  const bg = document.getElementById('heroBg');
+  const center = document.getElementById('heroCenter');
+  if (!calm && bg && center) {
+    let ticking = false;
+    const onScroll = () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => {
+        const y = window.scrollY;
+        const h = window.innerHeight;
+        const p = Math.min(y / h, 1);
+        bg.style.transform = `translateY(${y * 0.28}px) scale(${1 + p * 0.12})`;
+        center.style.transform = `translateY(${y * -0.16}px)`;
+        center.style.opacity = String(Math.max(0, 1 - p * 1.1));
+        ticking = false;
       });
-    });
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
   }
 </script>
 
 <style>
-  /* —— ① 首屏 —— */
+  /* —— ① 首屏：全屏画境 —— */
   .hero {
     position: relative;
     min-height: 100vh;
@@ -207,47 +153,120 @@ const galleryCount = (isDev ? galleryItems : galleryItems.filter((i) => i.status
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    padding: var(--sp-4) clamp(20px, 5vw, 64px);
+    padding: var(--sp-4) clamp(20px, 5vw, 64px) var(--sp-5);
+    color: var(--on-overlay);
     overflow: hidden;
+    isolation: isolate;
+  }
+  .hero-bg {
+    position: absolute;
+    inset: -8% 0 0 0;
+    z-index: -2;
+    will-change: transform;
+  }
+  .hero-bg .img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0;
+    animation: hero-fade 15s infinite;
+  }
+  .hero-bg .img:nth-child(2) {
+    animation-delay: 5s;
+  }
+  .hero-bg .img:nth-child(3) {
+    animation-delay: 10s;
+  }
+  @keyframes hero-fade {
+    0% {
+      opacity: 0;
+    }
+    4% {
+      opacity: 1;
+    }
+    30% {
+      opacity: 1;
+    }
+    34% {
+      opacity: 0;
+    }
+    100% {
+      opacity: 0;
+    }
+  }
+  .hero-scrim {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: linear-gradient(
+      180deg,
+      var(--scrim-hero-top) 0%,
+      var(--scrim-hero-mid) 42%,
+      var(--scrim-hero-low) 72%,
+      var(--scrim-hero-fade) 100%
+    );
   }
   .hero-top {
     display: flex;
     justify-content: space-between;
     gap: var(--sp-2);
-  }
-  .kicker {
     font-family: var(--font-mono);
     font-size: 12px;
-    letter-spacing: 0.22em;
-    color: var(--accent-ink);
+    letter-spacing: 0.24em;
+    opacity: 0.85;
   }
   .hero-center {
+    max-width: 1100px;
     padding: var(--sp-5) 0;
+    will-change: transform, opacity;
+  }
+  .kicker-line {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    letter-spacing: 0.3em;
+    margin-bottom: 22px;
+    opacity: 0.9;
+  }
+  .kicker-line::before {
+    content: '';
+    width: 44px;
+    height: 2px;
+    background: var(--hl);
   }
   .hero-title {
     margin: 0;
-    font-size: clamp(2.7rem, 8.4vw, 5.4rem);
+    font-size: clamp(2.6rem, 7.5vw, 5.6rem);
     font-weight: 600;
-    line-height: 1.16;
+    line-height: 1.12;
     letter-spacing: 0.01em;
-    color: var(--text);
+    text-shadow: 0 2px 24px var(--scrim-hero-mid);
   }
-  .line {
-    display: block;
+  /* 手绘马克笔高亮（光斑黄，上压松烟墨 7.4:1） */
+  .mark {
+    position: relative;
+    z-index: 0;
+    display: inline-block;
+    padding: 0 0.12em;
   }
-  /* 手绘彩铅下划线（内联 SVG，无外部请求） */
-  .line-1::after {
+  .mark::before {
     content: '';
-    display: block;
-    height: 12px;
-    margin-top: 0.08em;
-    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 240 12'%3E%3Cpath d='M2 8 Q 22 3, 44 7 T 88 7 T 132 6 T 176 7 T 238 7' fill='none' stroke='%23B78483' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat left center / 100% 12px;
-    opacity: 0.8;
+    position: absolute;
+    inset: 12% -0.04em 8%;
+    background: var(--hl);
+    transform: rotate(-1.2deg);
+    border-radius: 0.1em;
+    z-index: -1;
   }
   .hero-sub {
-    margin: var(--sp-4) 0 0;
+    margin: 20px 0 0;
     font-size: clamp(0.95rem, 1.6vw, 1.15rem);
-    color: var(--text-2);
+    letter-spacing: 0.08em;
+    opacity: 0.92;
   }
   .hero-bottom {
     display: flex;
@@ -255,26 +274,29 @@ const galleryCount = (isDev ? galleryItems : galleryItems.filter((i) => i.status
     align-items: flex-end;
     gap: var(--sp-3);
   }
+  /* 底部 scrim 已化入纸色，文字用深色 token（accent-ink on bg = 5.4:1） */
   .about-link {
-    font-size: 0.85rem;
+    font-size: 0.95rem;
     color: var(--accent-ink);
     text-decoration: none;
     border-bottom: 1px solid transparent;
+    padding-bottom: 4px;
+    transition: opacity 0.2s;
   }
   .about-link:hover {
-    border-bottom-color: var(--accent-ink);
+    opacity: 0.75;
   }
   .scroll-cue {
     display: inline-flex;
     align-items: center;
     gap: 8px;
     font-family: var(--font-mono);
-    font-size: 0.8rem;
-    letter-spacing: 0.14em;
+    font-size: 0.85rem;
+    letter-spacing: 0.2em;
     color: var(--text-2);
   }
   .scroll-cue svg {
-    animation: bob 1.6s ease-in-out infinite;
+    animation: bob 1.8s ease-in-out infinite;
   }
   @keyframes bob {
     0%,
@@ -286,54 +308,32 @@ const galleryCount = (isDev ? galleryItems : galleryItems.filter((i) => i.status
     }
   }
 
-  /* 涂鸦定位 + 视差系数 */
-  .doodle {
-    position: absolute;
-    pointer-events: none;
-    transition: transform 0.35s ease-out;
-  }
-  .d-star {
-    top: 18%;
-    right: 9%;
-    transform: translate(calc(var(--mx, 0) * 20px), calc(var(--my, 0) * 20px));
-  }
-  .d-squiggle {
-    bottom: 21%;
-    right: 13%;
-    transform: translate(calc(var(--mx, 0) * -26px), calc(var(--my, 0) * -26px));
-  }
-  .d-dots {
-    bottom: 27%;
-    left: 7%;
-    transform: translate(calc(var(--mx, 0) * 14px), calc(var(--my, 0) * 14px));
-  }
-
   /* —— ② 滚动横带 —— */
   .band-wrap {
     overflow: hidden;
-    padding: clamp(26px, 5vh, 44px) 0;
+    padding: clamp(30px, 5vh, 46px) 0;
   }
   .band {
     width: 112vw;
     margin-left: -6vw;
     background: var(--text);
     transform: rotate(-1.6deg);
-    padding: clamp(12px, 2vh, 18px) 0;
+    padding: clamp(12px, 2vh, 16px) 0;
   }
   .band-track {
     display: flex;
     width: max-content;
-    animation: marquee 26s linear infinite;
+    animation: marquee 22s linear infinite;
   }
   .band-track span {
-    font-size: clamp(1.3rem, 2.6vw, 2rem);
-    font-weight: 600;
-    letter-spacing: 0.02em;
-    color: var(--bg);
+    font-size: clamp(0.95rem, 1.6vw, 1.05rem);
+    letter-spacing: 0.14em;
+    color: var(--hl);
     white-space: nowrap;
+    padding-right: 12px;
   }
   .band-track span:nth-child(2) {
-    color: var(--hl);
+    color: var(--bg);
   }
   @keyframes marquee {
     to {
@@ -341,245 +341,149 @@ const galleryCount = (isDev ? galleryItems : galleryItems.filter((i) => i.status
     }
   }
 
-  /* —— 通用 section —— */
-  .section {
-    padding: clamp(72px, 13vh, 128px) 0;
+  /* —— ③ 三入口大图卡 —— */
+  /* 注意：.entries 是 .page（flex column）的直接子项，不能加 margin:auto——
+     auto 边距会覆盖 stretch 使区块按内容收缩（ Base.astro 同款陷阱），
+     故外层全宽承托纵向留白，内层 entries-inner 负责 1280 居中 */
+  .entries {
+    padding: clamp(56px, 9vh, 70px) 0 clamp(64px, 10vh, 90px);
   }
-  .section-inner {
-    max-width: 1080px;
+  .entries-inner {
+    max-width: 1280px;
     margin: 0 auto;
     padding: 0 clamp(20px, 5vw, 64px);
   }
-  .section-label {
-    margin: 0 0 var(--sp-4);
+  .sec-label {
+    margin: 0 0 14px;
     font-family: var(--font-mono);
-    font-size: 12px;
-    letter-spacing: 0.24em;
-    color: var(--text-2);
+    font-size: 13px;
+    letter-spacing: 0.28em;
+    color: var(--accent-ink);
   }
-
-  /* marker 高亮（光斑黄马克笔） */
-  .mark {
-    position: relative;
-    z-index: 0;
-    display: inline-block;
-    padding: 0 0.08em;
-  }
-  .mark::before {
-    content: '';
-    position: absolute;
-    inset: 12% -0.04em 8%;
-    background: var(--hl);
-    transform: rotate(-1deg);
-    border-radius: 0.14em;
-    z-index: -1;
-  }
-
-  /* —— ③ 大主张 —— */
-  .statement {
-    margin: 0;
-    font-size: clamp(2rem, 5.6vw, 3.4rem);
+  .sec-title {
+    margin: 0 0 clamp(32px, 5vh, 44px);
+    font-size: clamp(1.7rem, 3.4vw, 2.5rem);
     font-weight: 600;
-    line-height: 1.4;
-    color: var(--text);
   }
-  .statement-sub {
-    margin: var(--sp-4) 0 0;
-    font-size: 0.95rem;
-    color: var(--text-2);
-  }
-
-  /* —— ④ 三入口 —— */
-  .entries {
-    border-top: 1px solid var(--line);
-  }
-  .entry {
-    position: relative;
+  .entry-grid {
     display: grid;
-    grid-template-columns: auto 1fr auto;
-    align-items: center;
-    gap: clamp(16px, 4vw, 48px);
-    padding: clamp(20px, 3.4vw, 34px) clamp(6px, 2vw, 20px);
-    border-bottom: 1px solid var(--line);
-    text-decoration: none;
-    color: var(--text);
-    overflow: hidden;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 22px;
   }
-  .entry::before {
+  .entry-card {
+    position: relative;
+    display: block;
+    height: 460px;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    text-decoration: none;
+    color: var(--on-overlay);
+    isolation: isolate;
+  }
+  .entry-card img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: -2;
+    transition: transform 0.7s cubic-bezier(0.2, 0.6, 0.2, 1);
+  }
+  .entry-card::after {
     content: '';
     position: absolute;
     inset: 0;
-    background: var(--hl);
-    transform: scaleY(0);
-    transform-origin: bottom;
-    transition: transform 0.22s ease;
+    z-index: -1;
+    background: linear-gradient(180deg, var(--scrim-card-top) 30%, var(--scrim-card-bottom) 100%);
   }
-  .entry:hover::before,
-  .entry:focus-visible::before {
-    transform: scaleY(1);
+  .entry-card:hover img {
+    transform: scale(1.09);
   }
-  .entry > * {
-    position: relative;
-    z-index: 1;
+  .entry-body {
+    position: absolute;
+    left: 26px;
+    right: 26px;
+    bottom: 24px;
   }
-  .entry:focus-visible {
-    outline: 2px solid var(--accent-ink);
-    outline-offset: -2px;
-  }
-  .entry-index {
-    font-family: var(--font-mono);
-    font-size: clamp(1.1rem, 2.4vw, 1.5rem);
-    color: var(--accent-ink);
-  }
-  .entry-title {
+  .entry-idx {
     display: block;
-    font-size: clamp(1.5rem, 3.6vw, 2.3rem);
+    font-family: var(--font-mono);
+    font-size: 13px;
+    letter-spacing: 0.2em;
+    color: var(--on-overlay-2);
+    margin-bottom: 8px;
+  }
+  .entry-name {
+    display: block;
+    font-size: clamp(1.4rem, 2vw, 1.7rem);
     font-weight: 600;
-    line-height: 1.2;
   }
   .entry-meta {
     display: block;
-    margin-top: 6px;
-    font-size: 0.9rem;
-    color: var(--text-2);
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: var(--on-overlay-3);
   }
   .entry-arrow {
-    font-size: clamp(1.4rem, 3vw, 2rem);
-    color: var(--accent-ink);
-    transition: transform 0.2s ease;
-  }
-  .entry:hover .entry-arrow,
-  .entry:focus-visible .entry-arrow {
-    transform: translateX(8px);
-  }
-
-  /* —— ⑤ 时间线 —— */
-  .journey {
-    --jgap: clamp(22px, 3.4vw, 44px);
-    list-style: none;
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--jgap);
-    margin: 0;
-    padding: 0;
-  }
-  .ms {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    flex: 1 1 150px;
-    min-width: 130px;
-  }
-  .ms + .ms::before {
-    content: '';
     position: absolute;
-    top: 6px;
-    left: calc(-1 * var(--jgap));
-    width: var(--jgap);
-    height: 2px;
-    background: var(--line);
-  }
-  .ms-dot {
-    width: 14px;
-    height: 14px;
+    top: 22px;
+    right: 24px;
+    width: 42px;
+    height: 42px;
+    border: 1.5px solid var(--on-overlay-3);
     border-radius: 50%;
-    border: 2px solid var(--line);
-    background: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    transition: background 0.25s, color 0.25s, border-color 0.25s;
   }
-  .ms.done .ms-dot {
-    background: var(--accent-ink);
-    border-color: var(--accent-ink);
-  }
-  .ms.current .ms-dot {
-    border-color: var(--accent-ink);
-    animation: pulse 1.8s ease-in-out infinite;
-  }
-  @keyframes pulse {
-    0%,
-    100% {
-      box-shadow: 0 0 0 0 rgb(70 100 140 / 35%);
-    }
-    50% {
-      box-shadow: 0 0 0 6px rgb(70 100 140 / 0%);
-    }
-  }
-  .ms-name {
-    font-size: 0.92rem;
-    color: var(--text-2);
-  }
-  .ms.done .ms-name {
+  .entry-card:hover .entry-arrow,
+  .entry-card:focus-visible .entry-arrow {
+    background: var(--hl);
     color: var(--text);
-    font-weight: 500;
+    border-color: var(--hl);
   }
-  .ms.current .ms-name {
-    color: var(--accent-ink);
-    font-weight: 600;
-  }
-  .ms-tag {
-    align-self: flex-start;
-    font-size: 0.72rem;
-    background: var(--tag-bg);
-    color: var(--text);
-    border-radius: 4px;
-    padding: 1px 6px;
+  .entry-card:focus-visible {
+    outline: 2px solid var(--hl);
+    outline-offset: 2px;
   }
 
-  /* —— ⑥ CTA —— */
-  .cta-quote {
-    margin: 0;
-    font-size: clamp(1.9rem, 4.6vw, 3.2rem);
-    font-weight: 600;
-    line-height: 1.45;
-    color: var(--text);
-  }
-  .cta-sub {
-    margin: var(--sp-4) 0 0;
-    font-size: 0.95rem;
-    color: var(--text-2);
-  }
-
-  /* —— 滚动渐显（无 JS 时全部可见）—— */
-  .js .reveal {
-    opacity: 0;
-    transform: translateY(16px);
-  }
-  .js .reveal.in-view {
-    opacity: 1;
-    transform: none;
-    transition: opacity 0.5s ease, transform 0.5s ease;
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .js .reveal {
-      opacity: 1;
-      transform: none;
+  @media (max-width: 860px) {
+    .entry-grid {
+      grid-template-columns: 1fr;
     }
-    .band-track,
-    .scroll-cue svg,
-    .ms.current .ms-dot {
-      animation: none;
+    .entry-card {
+      height: 340px;
     }
-    .doodle,
-    .entry,
-    .entry-arrow {
-      transition: none;
+    .hero {
+      min-height: 520px;
     }
   }
-
   @media (max-width: 560px) {
-    .d-star {
-      top: 12%;
-      right: 6%;
-    }
-    .d-squiggle,
-    .d-dots {
-      display: none;
-    }
     .hero-bottom {
       flex-direction: column;
       align-items: flex-start;
       gap: var(--sp-2);
+    }
+    .entry-body {
+      left: 20px;
+      right: 20px;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .hero-bg .img {
+      animation: none;
+    }
+    .hero-bg .img:first-child {
+      opacity: 1;
+    }
+    .band-track,
+    .scroll-cue svg {
+      animation: none;
+    }
+    .entry-card img {
+      transition: none;
     }
   }
 </style>

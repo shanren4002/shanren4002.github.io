@@ -24,6 +24,14 @@
   --on-overlay:   #E8E4DA;                /* 叠层上主文本（≈13.7:1） */
   --on-overlay-2: #9aa3ab;                /* 叠层次级文本（≈6.6:1） */
   --on-overlay-3: #c9c4b8;                /* 叠层辅助文本（≈10.0:1） */
+  /* —— 首屏画境（主页 A 版，2026-11-01）：图上暗 scrim 渐变 stops ——
+   * 色相同 --text/#2C3635 与 --bg/#F4F1EA，仅取透明度渐变；图上文本一律走 --on-overlay 组 */
+  --scrim-hero-top:   rgba(44, 54, 53, 0.72);   /* 首屏 scrim：顶（压图保文字可读） */
+  --scrim-hero-mid:   rgba(44, 54, 53, 0.38);   /* 中 */
+  --scrim-hero-low:   rgba(44, 54, 53, 0.55);   /* 中下 */
+  --scrim-hero-fade:  rgba(244, 241, 234, 0.96);/* 底：化入页面纸色（底部文字用深色 token） */
+  --scrim-card-top:   rgba(44, 54, 53, 0.05);   /* 入口大图卡 scrim：顶 */
+  --scrim-card-bottom:rgba(44, 54, 53, 0.88);   /* 底（承托浅色文字） */
   --font-sans: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", system-ui, sans-serif;
   --font-mono: "JetBrains Mono", "SF Mono", Consolas, "Courier New", monospace;
   --sp-1: 4px; --sp-2: 8px; --sp-3: 16px; --sp-4: 24px; --sp-5: 40px; --sp-6: 64px;  /* 4px 基数 */
