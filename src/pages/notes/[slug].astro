@@ -11,7 +11,8 @@ export async function getStaticPaths() {
 }
 
 const { note } = Astro.props;
-const { Content } = await render(note);
+// headings 与 <Content /> 渲染出的标题 id 同源（github-slugger），可直接服务端生成目录
+const { Content, headings } = await render(note);
 
 // 邻篇导航（按日期全局排序：prev=更新一篇，next=更旧一篇）
 const allNotes = await getCollection('notes');
@@ -29,6 +30,13 @@ const iso = (d: Date) => d.toISOString().slice(0, 10);
 // 阅读时长估算：剔除代码块后按 ~400 字/分钟
 const plain = note.body.replace(/```[\s\S]*?```/g, '').replace(/\s/g, '');
 const minutes = Math.max(1, Math.round(plain.length / 400));
+
+// —— 目录：服务端渲染（曾用 hidden 起步 + JS 揭示，慢网下首屏先绘部分 HTML、
+//    揭示时整页下移 856px → CLS 0.458；改为进初始 HTML 后位移归零）。
+//    标题 id 由 Astro 渲染时生成，headings.slug 与之同源，无需 JS 再挂 id。
+const tocHeads = headings.filter((h) => h.depth <= 3);
+const showToc = tocHeads.length >= 2;
+const pad = (i: number) => String(i + 1).padStart(2, '0');
 ---
 
 <Base title={`${note.data.title} · 笔记`} description={note.data.summary}>
@@ -53,8 +61,22 @@ const minutes = Math.max(1, Math.round(plain.length / 400));
       )}
     </header>
 
-    <!-- 目录：JS 从正文标题自动生成；无标题时保持隐藏 -->
-    <nav class="toc" id="toc" hidden aria-label="本文目录"></nav>
+    <!-- 目录：服务端渲染（无 hidden 起步，杜绝 JS 揭示的布局位移；当前节高亮仍由 JS 驱动） -->
+    {showToc && (
+      <nav class="toc" id="toc" aria-label="本文目录">
+        <p class="toc-title">本文目录</p>
+        <ol class="toc-list">
+          {tocHeads.map((h, i) => (
+            <li class={`toc-h${h.depth}`}>
+              <a href={`#${h.slug}`}>
+                <span class="toc-no">{pad(i)}</span>
+                <span class="toc-t">{h.text}</span>
+              </a>
+            </li>
+          ))}
+        </ol>
+      </nav>
+    )}
 
     <div class="prose" data-pagefind-body>
       <Content />
@@ -118,42 +140,22 @@ const minutes = Math.max(1, Math.round(plain.length / 400));
     window.scrollTo({ top: 0, behavior: calm ? 'auto' : 'smooth' });
   });
 
-  // —— 目录：正文 h1/h2/h3 自动生成 + 锚点 + 当前节高亮 ——
+  // —— 标题锚点注入（id 已由 Astro 服务端渲染，此处仅追加 hover 显现的 '#'）+ 当前节高亮 ——
   const prose = document.querySelector('.prose');
   const toc = document.getElementById('toc');
   if (prose && toc) {
     const heads = Array.from(prose.querySelectorAll('h1, h2, h3'));
-    if (heads.length >= 2) {
-      const pad = (i: number) => String(i + 1).padStart(2, '0');
-      const links: HTMLAnchorElement[] = [];
-      const list = document.createElement('ol');
-      list.className = 'toc-list';
-      heads.forEach((h, i) => {
-        const id = `sec-${i}`;
-        h.id = id;
-        const headText = (h.textContent ?? '').trim(); // 先取文案，再追加锚点（避免混入 '#'）
+    const links = Array.from(toc.querySelectorAll('.toc-list a')) as HTMLAnchorElement[];
+    if (heads.length >= 2 && links.length === heads.length) {
+      heads.forEach((h) => {
+        if (!h.id) return;
         const a = document.createElement('a');
         a.className = 'head-anchor';
-        a.href = `#${id}`;
+        a.href = `#${h.id}`;
         a.setAttribute('aria-label', '复制本节链接');
         a.textContent = '#';
         h.appendChild(a);
-
-        const li = document.createElement('li');
-        li.className = `toc-${h.tagName.toLowerCase()}`;
-        const link = document.createElement('a');
-        link.href = `#${id}`;
-        link.innerHTML = `<span class="toc-no">${pad(i)}</span><span class="toc-t"></span>`;
-        (link.querySelector('.toc-t') as HTMLElement).textContent = headText;
-        li.appendChild(link);
-        list.appendChild(li);
-        links.push(link);
       });
-      const title = document.createElement('p');
-      title.className = 'toc-title';
-      title.textContent = '本文目录';
-      toc.append(title, list);
-      toc.hidden = false;
 
       // 当前节：最后一个越过阅读线的标题
       const syncActive = () => {
