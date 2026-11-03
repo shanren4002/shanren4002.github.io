@@ -30,6 +30,15 @@ const isActive = (href: string) =>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content={description} />
     <meta name="generator" content={Astro.generator} />
+    <!-- 开机动画（莱茵生命风 · 改编自开源项目 dsh-startup-screen，MIT，见 public/startup/LICENSE）：
+         样式表 + 首屏兜底 CSS（动画未就绪时黑幕先盖上，绝不闪出界面本体） -->
+    <link rel="stylesheet" href="/startup/splash.css" />
+    <style is:inline>
+      html.dsu-lock,html.dsu-lock body{overflow:hidden!important}
+      html.dsu-lock body{background-color:#000!important}
+      :root{--dsh-boot-bg:#000}
+      #dsh-startup-root.dsu-boot{position:fixed;inset:0;z-index:2147483000;background:#000}
+    </style>
     <title>{title}</title>
     <link rel="canonical" href={new URL(Astro.url.pathname, Astro.site)} />
     <meta property="og:title" content={title} />
@@ -41,6 +50,80 @@ const isActive = (href: string) =>
     <meta name="twitter:card" content="summary" />
   </head>
   <body>
+    <!-- 开机动画挂载点（必须与 splash.js 的 ROOT_ID 一致；dsu-boot 类由首屏兜底 CSS 立即盖黑） -->
+    <div id="dsh-startup-root" class="dsu-root dsu-boot"></div>
+    <script is:inline>
+      /* 开机动画配置（改编自 dsh-startup-screen；结构/时间线/音效与原版一致，仅品牌文案与徽标适配本站） */
+      window.__DSH_STARTUP__ = {
+        enabled: true,
+        mode: 'session',          // always | session | daily：每会话一次
+        theme: 'light',
+        speed: 1,
+        requireInteraction: true, // 第 1、2 步停下等按钮 / Enter / 空格
+        allowSkip: true,          // 右上 SKIP / Esc
+        sound: true,
+        soundVolume: 0.5,
+        voice: true,
+        voiceLang: 'en',
+        voiceName: '',
+        voiceRate: 0.88,
+        voicePitch: 0.85,
+        voiceVolume: 0.9,
+        voiceCue: true,
+        sfx: 'audio',
+        voiceSource: 'asset',
+        voiceLead: 240,
+        identity: 'READER',
+        identityId: '0001',
+        accessLevel: '3',
+        brand1: 'SHANREN',
+        brand2: 'PERSONAL ARCHIVE',
+        brand3a: 'PORTFOLIO',
+        brand3b: 'ARCHIVE',
+        orgZh: '作品集',
+        orgEn: 'PORTFOLIO',
+        orgSub: 'PERSONAL ARCHIVE SITE',
+        welcomeBox: 'PORTFOLIO',
+        footer: 'BUILT WITH ASTRO · GITHUB PAGES',
+        accent: '#ff7500',
+        glitchA: '#ff3b30',
+        glitchB: '#2971b8',
+        glass: true,
+        glassOpacity: 0.75,
+        glassBlur: 22,
+        glassSaturate: 160,
+        glassBackdropBlur: 28
+      };
+      /* 本次是否播放的判定（原版 Host 侧 bootstrap 逻辑）+ 自动化环境豁免：
+         webdriver（E2E/截图）或 URL 带 nosplash 参数 → 不播，避免门禁脚本被动画挡住 */
+      (function(){try{
+        var c=window.__DSH_STARTUP__||{};
+        var root=document.getElementById('dsh-startup-root');
+        var off=!c.enabled;
+        if(!off&&c.mode==='session'&&sessionStorage.getItem('dsh-startup-screen:shown')==='1')off=true;
+        if(!off&&c.mode==='daily'&&localStorage.getItem('dsh-startup-screen:day')===new Date().toISOString().slice(0,10))off=true;
+        if(!off&&(navigator.webdriver||/[?&]nosplash(=|&|$)/.test(location.search)))off=true;
+        /* 无障碍底线：系统设置「减少动效」的用户不播放片头 */
+        if(!off&&window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches)off=true;
+        if(off){window.__DSH_STARTUP_SKIP__=true;if(root&&root.parentNode)root.parentNode.removeChild(root);}
+        else{
+          document.documentElement.classList.add('dsu-lock');
+          /* 运行时按需加载：本次不播的访问（本会话已播过 / 自动化 / 减少动效）完全不拉这 60KB */
+          var s=document.createElement('script');
+          s.src='/startup/splash.js';s.defer=true;
+          document.head.appendChild(s);
+          /* 兜底：splash.js 都没跑起来（404/被拦/语法错）时 9 秒后无条件放行，绝不锁黑屏 */
+          setTimeout(function(){try{
+            if(window.__DSH_STARTUP_RUNNING__===true)return;
+            var r=document.getElementById('dsh-startup-root');
+            if(r&&r.parentNode)r.parentNode.removeChild(r);
+            document.documentElement.classList.remove('dsu-lock');
+            if(document.body)document.body.style.overflow='';
+            window.__DSH_STARTUP_FAILED__=true;
+          }catch(e){}},9000);
+        }
+      }catch(e){}})();
+    </script>
     {!wide && (
       <header class="site-head">
         <div class="site-head-inner">
