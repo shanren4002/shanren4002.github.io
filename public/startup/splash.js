@@ -529,12 +529,12 @@
 
   ;(function logoStage() {
     ui.logo.appendChild(svgWhale())
-    ui.logo.appendChild(el('div', 'dsu-logolabel', 'D E E P S E E K'))
+    ui.logo.appendChild(el('div', 'dsu-logolabel', String(C.brand1).split('').join(' ')))
   })()
 
   ;(function welcomeLogo() {
     ui.w3.appendChild(svgWhale())
-    ui.w3.appendChild(el('span', 'dsu-w3label', 'D E E P S E E K  ·  H A R N E S S'))
+    ui.w3.appendChild(el('span', 'dsu-w3label', String(C.brand1).split('').join(' ') + '  ·  ' + String(C.brand3a).split('').join(' ')))
   })()
 
   ;(function watermark() {
