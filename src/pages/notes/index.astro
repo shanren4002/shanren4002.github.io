@@ -1,43 +1,67 @@
 ---
+/* 笔记列表页 · 版二「词云星图」（2026-11-05 用户选定定稿）
+ * 设计样板：.workbuddy/qa/mockups/notes-r2-2-constellation.html（非最终实现角标版）
+ * 回滚档案：.workbuddy/qa/rollback/README.md（旧版 SHA 11def15 + 旧文件备份 + 一键回滚命令） */
 import Base from '../../layouts/Base.astro';
 import { getCollection } from 'astro:content';
 
 // 生产环境只展示 published；dev 模式展示全部（草稿带徽章，供本地抽查）
 const all = await getCollection('notes');
+type NoteEntry = (typeof all)[number];
 const isDev = import.meta.env.DEV;
 const notes = isDev ? all : all.filter((n) => n.data.status === 'published');
 const sorted = [...notes].sort((a, b) => b.data.date.getTime() - a.data.date.getTime());
 
-// 按分类分组（分类按笔记数降序，多的在前）
-const byCategory = new Map<string, typeof sorted>();
+// —— 分类（按篇数降序）——仅用于条目分类色点映射（装饰，循环 4 色）——
+const catCount = new Map<string, number>();
+for (const n of sorted) catCount.set(n.data.category, (catCount.get(n.data.category) ?? 0) + 1);
+const categories = [...catCount.entries()].sort((a, b) => b[1] - a[1]);
+const catCi = new Map(categories.map(([cat], i) => [cat, i % 4]));
+
+// —— 词云：标签频次（降序，同频次按名称）；字号分 5 档（xl≥8 / lg≥5 / md≥3 / sm=2 / xs=1）——
+const tagCount = new Map<string, number>();
+for (const n of sorted) for (const t of n.data.tags) tagCount.set(t, (tagCount.get(t) ?? 0) + 1);
+const tags = [...tagCount.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'zh-Hans-CN'));
+const tierOf = (n: number) => (n >= 8 ? 'xl' : n >= 5 ? 'lg' : n >= 3 ? 'md' : n === 2 ? 'sm' : 'xs');
+
+// —— 时间轴：日期分组（倒序）+ 月界标记；日期组左右交错（河流式）——
+const isoDate = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const md = (d: Date | string) =>
+  typeof d === 'string' ? d.slice(5, 7) + '.' + d.slice(8, 10) : `${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
+const yy = (d: Date | string) => (typeof d === 'string' ? d.slice(2, 4) : String(d.getFullYear()).slice(2));
+
+const byDate = new Map<string, NoteEntry[]>();
 for (const n of sorted) {
-  const list = byCategory.get(n.data.category) ?? [];
+  const key = isoDate(n.data.date);
+  const list = byDate.get(key) ?? [];
   list.push(n);
-  byCategory.set(n.data.category, list);
+  byDate.set(key, list);
 }
-const categories = [...byCategory.entries()].sort((a, b) => b[1].length - a[1].length);
+const dayEntries = [...byDate.entries()].sort((a, b) => (a[0] < b[0] ? 1 : -1));
 
-// 分类装饰色（仅装饰：卡片色条/节头线，按分类序循环 4 色；不做正文文本）
-const catColor = new Map<string, number>();
-categories.forEach(([cat], i) => catColor.set(cat, i % 4));
+const monthMap = new Map<string, { key: string; label: string; count: number }>();
+for (const [date, items] of dayEntries) {
+  const mk = date.slice(0, 7);
+  const m = monthMap.get(mk) ?? { key: mk, label: `${mk.slice(0, 4)} 年 ${Number(mk.slice(5, 7))} 月`, count: 0 };
+  m.count += items.length;
+  monthMap.set(mk, m);
+}
 
-// 编辑排版：pinned 优先上大卡；否则每分类最新一篇（分类 ≥3 篇时）上大卡
-const featuredSlugs = new Set<string>();
-for (const [, list] of categories) {
-  const pinned = list.filter((n) => n.data.pinned);
-  if (pinned.length > 0) {
-    pinned.forEach((n) => featuredSlugs.add(n.data.slug));
-  } else if (list.length >= 3) {
-    featuredSlugs.add(list[0].data.slug);
+type TlNode =
+  | { type: 'month'; key: string; label: string; count: number }
+  | { type: 'day'; date: string; month: string; items: NoteEntry[]; pos: 'l' | 'r'; hot: boolean };
+const tlNodes: TlNode[] = [];
+let dayIdx = 0;
+for (const [date, items] of dayEntries) {
+  const mk = date.slice(0, 7);
+  if (!tlNodes.some((x) => x.type === 'month' && x.key === mk)) {
+    tlNodes.push({ type: 'month', ...monthMap.get(mk)! });
   }
+  tlNodes.push({ type: 'day', date, month: mk, items, pos: dayIdx % 2 === 0 ? 'l' : 'r', hot: items.length >= 3 });
+  dayIdx++;
 }
 
-const fmt = (d: Date) =>
-  d.toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' });
-const md = (d: Date) =>
-  `${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
-const yy = (d: Date) => String(d.getFullYear()).slice(2);
-const idx = (i: number) => String(i + 1).padStart(2, '0');
 const latest = sorted[0]?.data.date;
 ---
 
@@ -57,7 +81,7 @@ const latest = sorted[0]?.data.date;
         </div>
         {latest && (
           <div class="stat">
-            <span class="stat-num stat-date">{md(latest)}</span>
+            <span class="stat-date stat-num">{md(latest)}</span>
             <span class="stat-label">最近更新 · {yy(latest)}</span>
           </div>
         )}
@@ -65,74 +89,103 @@ const latest = sorted[0]?.data.date;
       {isDev && <p class="dev-hint">dev 预览：含草稿，发布后仅可见 published</p>}
     </header>
 
-    <div class="search-box">
-      <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
-        <circle cx="11" cy="11" r="7" /><path d="m20 20-3.8-3.8" />
-      </svg>
-      <input
-        id="note-search"
-        type="search"
-        placeholder="搜索标题或正文…"
-        aria-label="搜索笔记"
-        autocomplete="off"
-        spellcheck="false"
-      />
-      <button type="button" id="search-clear" class="search-clear" hidden aria-label="清空搜索">×</button>
-    </div>
-    <p class="search-status" id="search-status" role="status" aria-live="polite"></p>
-    <div class="search-results" id="search-results" data-pf-base={import.meta.env.BASE_URL} hidden></div>
-
     {sorted.length === 0 ? (
       <div class="empty">
         <p>还没有已发布的笔记。</p>
         <p class="empty-sub">对 AI 说一句「帮我把这 xxx 上传到我的作品集」，或等本地抽查完成后发布。</p>
       </div>
     ) : (
-      <div class="cat-jump">
-        {categories.map(([cat, list], i) => (
-          <a href={`#cat-${encodeURIComponent(cat)}`}>
-            <span class="jump-index">{idx(i)}</span>{cat}
-            <span class="jump-count">{list.length}</span>
-          </a>
-        ))}
-      </div>
-    )}
+      <>
+        {/* —— 词云 hero：独占首屏剩余空间（高度由紧随其后的内联脚本按实测顶部设定）—— */}
+        <section class="cx-zone" data-reveal aria-label="标签词云，点按过滤">
+          <p class="cx-kicker">TAG CLOUD · {tags.length} 个标签 · 字号即频次</p>
+          <div class="cx-cloud">
+            {tags.map(([name, count]) => (
+              <button type="button" class:list={['tc', `tc-${tierOf(count)}`]} data-tag={name} aria-pressed="false">
+                {name}
+              </button>
+            ))}
+          </div>
+          <p class="cx-focus">
+            <button type="button" class="cw-all" id="f-all">全部<span class="tc-n">{sorted.length}</span></button>
+            <span id="f-focus">当前聚焦 · 全部 {sorted.length} 篇</span>
+          </p>
+          <p class="cx-scroll" aria-hidden="true">时间轴在下方 ↓</p>
+        </section>
+        <script is:inline>
+          /* hero 精确填充首屏剩余空间：按 zone 文档顶实测（导航/页头/间距全计入），resize 重算。
+             内联经典脚本置于 zone 之后——HTML 解析期执行，先于首帧绘制，避免撑高产生的布局位移 */
+          (function () {
+            var zone = document.querySelector('.cx-zone');
+            if (!zone) return;
+            function fit() {
+              var top = zone.getBoundingClientRect().top + scrollY;
+              zone.style.minHeight = Math.max(300, innerHeight - top) + 'px';
+            }
+            fit();
+            addEventListener('resize', fit);
+            addEventListener('load', fit);
+          })();
+        </script>
 
-    {categories.map(([cat, list], i) => (
-      <section class="cat-section" id={`cat-${encodeURIComponent(cat)}`} data-ci={catColor.get(cat)}>
-        <h2 class="cat-head">
-          <span class="cat-index">{idx(i)}</span>
-          <span class="cat-name">{cat}</span>
-          <span class="cat-line" aria-hidden="true"></span>
-          <span class="cat-count">{list.length} 篇</span>
-        </h2>
-        <div class="note-list">
-          {list.map((n, j) => (
-            <article
-              class:list={['note-card', { featured: featuredSlugs.has(n.data.slug) }]}
-              style={`--d:${Math.min(j, 6) * 55}ms`}
-            >
-              <span class="card-bar" aria-hidden="true"></span>
-              <div class="note-meta">
-                <time datetime={n.data.date.toISOString()}>
-                  <span class="d-md">{md(n.data.date)}</span>
-                  <span class="d-y">{yy(n.data.date)}</span>
-                </time>
-                {featuredSlugs.has(n.data.slug) && <span class="badge-new">最新</span>}
-                {n.data.status === 'draft' && isDev && <span class="badge-draft">草稿</span>}
-              </div>
-              <h3><a href={`/notes/${n.data.slug}/`}>{n.data.title}</a></h3>
-              <p class="note-summary">{n.data.summary}</p>
-              {n.data.tags.length > 0 && (
-                <div class="tag-row">
-                  {n.data.tags.map((t) => <span class="tag">#{t}</span>)}
-                </div>
-              )}
-            </article>
-          ))}
+        {/* —— Pagefind 站内搜索（M4）：位于 hero 之下、时间轴之上；搜索时隐藏浏览区 —— */}
+        <div class="search-box">
+          <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+            <circle cx="11" cy="11" r="7" /><path d="m20 20-3.8-3.8" />
+          </svg>
+          <input
+            id="note-search"
+            type="search"
+            placeholder="搜索标题或正文…"
+            aria-label="搜索笔记"
+            autocomplete="off"
+            spellcheck="false"
+          />
+          <button type="button" id="search-clear" class="search-clear" hidden aria-label="清空搜索">×</button>
         </div>
-      </section>
-    ))}
+        <p class="search-status" id="search-status" role="status" aria-live="polite"></p>
+        <div class="search-results" id="search-results" data-pf-base={import.meta.env.BASE_URL} hidden></div>
+
+        {/* —— 河流式时间轴：脊柱居中，日期组交错左右 —— */}
+        <section class="cx-axis-zone">
+          <h2 class="cx-axis-h">时间轴 · {dayEntries.length} 个日期节点<span class="cx-axis-n" id="f-count">{sorted.length} 篇</span></h2>
+          <div class="tl tl-river">
+            {tlNodes.map((node) =>
+              node.type === 'month' ? (
+                <div class="tl-month tl-month-r" data-reveal data-month={node.key}>
+                  <span class="tl-month-t">{node.label}</span>
+                  <span class="tl-month-n">{node.count} 篇</span>
+                </div>
+              ) : (
+                <div
+                  class:list={['tl-day', 'tl-day-r', node.pos === 'l' ? 'pos-l' : 'pos-r']}
+                  data-reveal
+                  data-n={node.items.length}
+                  data-month={node.month}
+                  data-hot={node.hot ? true : undefined}
+                >
+                  <div class="tl-day-head">
+                    <time datetime={node.date}>{yy(node.date)}.{md(node.date)}</time>
+                    <span class="tl-day-n">{node.items.length} 篇</span>
+                  </div>
+                  {node.items.map((n) => (
+                    <a class="tl-item" href={`/notes/${n.data.slug}/`} data-tags={n.data.tags.map((t) => t.toLowerCase()).join('|')}>
+                      <span class="tl-item-t">{n.data.title}</span>
+                      <p class="tl-item-s">{n.data.summary}</p>
+                      <span class="tl-item-m">
+                        <span class="cat-dot" data-ci={catCi.get(n.data.category) ?? 0} aria-hidden="true"></span>
+                        {n.data.category} · {md(n.data.date)}
+                        {n.data.status === 'draft' && isDev && <span class="badge-draft">草稿</span>}
+                      </span>
+                    </a>
+                  ))}
+                </div>
+              ),
+            )}
+          </div>
+        </section>
+      </>
+    )}
   </section>
 </Base>
 
@@ -168,7 +221,7 @@ const latest = sorted[0]?.data.date;
       );
 
     const setSearching = (on: boolean) => {
-      browseEl.classList.toggle('searching', on);
+      browseEl!.classList.toggle('searching', on);
       resultsEl.hidden = !on;
       if (clearBtn) clearBtn.hidden = !on;
     };
@@ -257,9 +310,47 @@ const latest = sorted[0]?.data.date;
     }
   }
 
+  // —— 词云过滤：条目级（点词只显示命中条目；空日期组/空月界自动收起）——
+  const cloudBtns = document.querySelectorAll<HTMLButtonElement>('.tc[data-tag]');
+  const itemEls = Array.prototype.slice.call(document.querySelectorAll<HTMLElement>('.tl-item[data-tags]'));
+  const dayEls = Array.prototype.slice.call(document.querySelectorAll<HTMLElement>('.tl-day[data-month]'));
+  const monthEls = Array.prototype.slice.call(document.querySelectorAll<HTMLElement>('.tl-month[data-month]'));
+  const countEl = document.getElementById('f-count');
+  const focusEl = document.getElementById('f-focus');
+  const allBtn = document.getElementById('f-all');
+  const totalN = itemEls.length;
+  function applyFilter(tag: string) {
+    const key = tag ? tag.toLowerCase() : '';
+    let n = 0;
+    itemEls.forEach((it: HTMLElement) => {
+      const show = !key || String(it.dataset.tags || '').split('|').indexOf(key) !== -1;
+      it.hidden = !show;
+      if (show) n++;
+    });
+    dayEls.forEach((d: HTMLElement) => {
+      d.hidden = !d.querySelector('.tl-item:not([hidden])');
+    });
+    monthEls.forEach((m: HTMLElement) => {
+      m.hidden = !dayEls.some((d: HTMLElement) => !d.hidden && d.dataset.month === m.dataset.month);
+    });
+    cloudBtns.forEach((b: HTMLButtonElement) => {
+      const on = b.dataset.tag === tag;
+      b.classList.toggle('on', on);
+      b.setAttribute('aria-pressed', String(on));
+    });
+    if (countEl) countEl.textContent = n + ' 篇';
+    if (focusEl) focusEl.textContent = tag ? '当前聚焦 · ' + tag + ' · ' + n + ' 篇' : '当前聚焦 · 全部 ' + totalN + ' 篇';
+  }
+  cloudBtns.forEach((b: HTMLButtonElement) => {
+    b.addEventListener('click', () => {
+      applyFilter(b.classList.contains('on') ? '' : (b.dataset.tag ?? ''));
+    });
+  });
+  allBtn?.addEventListener('click', () => applyFilter(''));
+
   // —— 滚动进入动画（无 JS 时全部可见；reduced-motion 走 CSS 降级）——
   document.documentElement.classList.add('js');
-  const revealTargets = document.querySelectorAll<HTMLElement>('.cat-section, .note-card');
+  const revealTargets = document.querySelectorAll<HTMLElement>('[data-reveal]');
   if ('IntersectionObserver' in window) {
     const io = new IntersectionObserver(
       (entries) => {
@@ -280,12 +371,14 @@ const latest = sorted[0]?.data.date;
 
 <style>
   .notes-index {
-    padding: var(--sp-5) 0;
+    /* 顶距让页头呼吸；hero 区高度由内联脚本按首屏剩余空间精确设定 */
+    --ease: cubic-bezier(0.22, 1, 0.36, 1);
+    padding: var(--sp-2) 0 0;
   }
 
   /* —— 页头：编辑式大标题 + 三联数据条 —— */
   .page-head {
-    margin-bottom: var(--sp-5);
+    margin-bottom: var(--sp-4);
   }
   .head-kicker {
     margin: 0 0 var(--sp-2);
@@ -358,150 +451,312 @@ const latest = sorted[0]?.data.date;
     color: var(--accent-ink);
   }
 
-  /* —— 分类跳转：编号索引 —— */
-  .cat-jump {
+  /* —— 滚动显现（html.js 下初始隐藏；reduced-motion 直接可见）—— */
+  html.js [data-reveal] {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  html.js [data-reveal].in {
+    opacity: 1;
+    transform: none;
+    transition: opacity 700ms var(--ease) var(--d, 0ms), transform 700ms var(--ease) var(--d, 0ms);
+  }
+
+  /* —— 词云 hero：独占首屏剩余空间 —— */
+  .cx-zone {
+    min-height: 300px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: var(--sp-3) 0 var(--sp-4);
+  }
+  .cx-kicker {
+    margin: 0 0 var(--sp-2);
+    font-family: var(--font-mono);
+    font-size: 0.74rem;
+    letter-spacing: 0.22em;
+    color: var(--text-2);
+  }
+  .cx-cloud {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--sp-2);
-    margin-bottom: var(--sp-6);
-    padding-bottom: var(--sp-4);
-    border-bottom: 1px solid var(--line);
-  }
-  .cat-jump a {
-    display: inline-flex;
+    justify-content: center;
     align-items: baseline;
-    gap: 6px;
-    font-size: 0.85rem;
-    color: var(--text);
-    text-decoration: none;
-    background: var(--surface);
-    border: 1px solid var(--line);
-    border-radius: var(--radius);
-    padding: var(--sp-1) var(--sp-2);
-    transition: border-color 150ms ease, color 150ms ease, transform 150ms ease;
+    gap: 5px 16px;
+    max-width: 860px;
+    padding: 6px 0;
   }
-  .cat-jump a:hover {
-    border-color: var(--accent-ink);
-    color: var(--accent-ink);
-    transform: translateY(-1px);
-  }
-  .jump-index {
-    font-family: var(--font-mono);
-    font-size: 0.72rem;
-    color: var(--accent-ink);
-  }
-  .jump-count {
-    font-family: var(--font-mono);
-    font-size: 0.72rem;
-    color: var(--text-2);
-  }
-
-  /* —— 分类节：装饰色按分类循环（仅色条/节头线，不做正文）—— */
-  .cat-section {
-    --ci: var(--accent);
-    margin-bottom: var(--sp-6);
-  }
-  .cat-section[data-ci='1'] { --ci: var(--accent-2); }
-  .cat-section[data-ci='2'] { --ci: var(--hover); }
-  .cat-section[data-ci='3'] { --ci: var(--hl); }
-  .cat-head {
-    display: flex;
-    align-items: baseline;
-    gap: var(--sp-2);
-    margin: 0 0 var(--sp-4);
-    padding-bottom: var(--sp-2);
-    border-bottom: 2px solid var(--ci);
-  }
-  .cat-index {
-    font-family: var(--font-mono);
-    font-size: 0.9rem;
-    color: var(--accent-ink);
-  }
-  .cat-name {
-    font-size: clamp(1.5rem, 3.4vw, 2.1rem);
-    font-weight: 600;
-    line-height: 1.2;
-  }
-  .cat-line {
-    flex: 1;
-    align-self: center;
-    height: 1px;
-    background: var(--line);
-  }
-  .cat-count {
-    font-family: var(--font-mono);
-    font-size: 0.8rem;
-    color: var(--text-2);
-  }
-
-  /* —— 杂志网格：featured 大卡跨两列 —— */
-  .note-list {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: var(--sp-3);
-  }
-  .note-card {
-    position: relative;
-    background: var(--surface);
-    border: 1px solid var(--line);
-    border-radius: var(--radius-lg);
-    padding: var(--sp-3) var(--sp-4) var(--sp-3) calc(var(--sp-4) + 6px);
-    overflow: hidden;
-    transition: transform 160ms ease, border-color 160ms ease;
-  }
-  /* 分类色条（常驻，装饰） */
-  .card-bar {
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    width: 4px;
-    background: var(--ci);
-  }
-  /* hover 彩铅顶条（与首页 marker 同语言） */
-  .note-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    background: var(--hl);
-    transform: scaleX(0);
-    transform-origin: left;
-    transition: transform 180ms ease;
-  }
-  .note-card:hover {
-    transform: translateY(-2px);
-    border-color: var(--accent-ink);
-  }
-  .note-card:hover::before {
-    transform: scaleX(1);
-  }
-  .note-meta {
-    display: flex;
-    align-items: center;
-    gap: var(--sp-2);
+  .cx-focus {
+    margin: var(--sp-3) 0 0;
     font-family: var(--font-mono);
     font-size: 0.78rem;
     color: var(--text-2);
-    margin-bottom: var(--sp-1);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: var(--sp-2);
   }
-  .note-meta .d-md {
-    font-weight: 600;
-    color: var(--text-2);
-  }
-  .note-meta .d-y {
+  .cx-scroll {
+    margin: var(--sp-3) 0 0;
+    font-family: var(--font-mono);
     font-size: 0.72rem;
-    opacity: 0.8;
+    letter-spacing: 0.24em;
+    color: var(--text-2);
+    animation: cx-bob 2.4s var(--ease) infinite;
   }
-  .badge-new {
-    font-family: var(--font-sans);
+  @keyframes cx-bob {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(6px);
+    }
+  }
+
+  /* —— 词云 chip（字号即频次，5 档）—— */
+  .tc {
+    font: inherit;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text);
+    padding: 2px 7px;
+    border-radius: 8px;
+    line-height: 1.45;
+    display: inline-flex;
+    align-items: baseline;
+    gap: 5px;
+    white-space: nowrap;
+    transition: color 200ms var(--ease), background-color 200ms var(--ease), transform 200ms var(--ease);
+  }
+  .cx-cloud .tc {
+    padding: 3px 9px;
+  }
+  .cx-cloud .tc:hover {
+    transform: translateY(-3px) scale(1.04);
+  }
+  .tc:hover {
+    color: var(--accent-ink);
+    background: var(--surface);
+  }
+  .tc:focus-visible {
+    outline: 2px solid var(--accent-ink);
+    outline-offset: 1px;
+  }
+  .tc.on {
     background: var(--tag-bg);
     color: var(--text);
-    border-radius: 4px;
-    padding: 0 6px;
+  }
+  .tc-n {
+    font-family: var(--font-mono);
+    font-size: 0.62em;
+    color: var(--text-2);
+  }
+  .tc.on .tc-n {
+    color: var(--text);
+  }
+  .cx-cloud .tc-xs {
+    font-size: 0.92rem;
+  }
+  .cx-cloud .tc-sm {
+    font-size: 1.12rem;
+  }
+  .cx-cloud .tc-md {
+    font-size: 1.4rem;
+    font-weight: 500;
+  }
+  .cx-cloud .tc-lg {
+    font-size: 1.8rem;
+    font-weight: 600;
+  }
+  .cx-cloud .tc-xl {
+    font-size: 2.3rem;
+    font-weight: 600;
+  }
+  .cw-all {
+    font: inherit;
+    font-size: 0.8rem;
+    cursor: pointer;
+    color: var(--text);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 4px 14px;
+    display: inline-flex;
+    align-items: baseline;
+    gap: 6px;
+    transition: border-color 200ms var(--ease), color 200ms var(--ease);
+  }
+  .cw-all:hover {
+    border-color: var(--accent-ink);
+    color: var(--accent-ink);
+  }
+  .cw-all:focus-visible {
+    outline: 2px solid var(--accent-ink);
+    outline-offset: 2px;
+  }
+
+  /* —— 时间轴区 —— */
+  .cx-axis-h {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin: var(--sp-5) 0 var(--sp-4);
+    font-size: 1.05rem;
+    font-weight: 600;
+  }
+  .cx-axis-h::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--line);
+    order: 3;
+  }
+  .cx-axis-n {
+    font-family: var(--font-mono);
+    font-size: 0.74rem;
+    font-weight: 400;
+    color: var(--accent-ink);
+  }
+
+  /* —— 时间轴通用件：脊柱 + 月界菱形 + 日期圆点 —— */
+  .tl {
+    position: relative;
+  }
+  .tl::before {
+    content: '';
+    position: absolute;
+    left: 5px;
+    top: 8px;
+    bottom: 8px;
+    width: 2px;
+    background: var(--line);
+  }
+  .tl-month {
+    position: relative;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin: var(--sp-4) 0 var(--sp-2);
+    padding-left: 30px;
+  }
+  .tl-month:first-child {
+    margin-top: 0;
+  }
+  .tl-month::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    background: var(--accent-ink);
+    transform: translateY(-50%) rotate(45deg);
+  }
+  .tl-month-t {
+    font-weight: 600;
+    font-size: 1.02rem;
+  }
+  .tl-month-n {
+    font-family: var(--font-mono);
+    font-size: 0.74rem;
+    color: var(--text-2);
+  }
+  .tl-day {
+    position: relative;
+    padding-left: 30px;
+    margin-bottom: var(--sp-3);
+  }
+  .tl-day::before {
+    content: '';
+    position: absolute;
+    left: 1px;
+    top: 6px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--surface);
+    border: 2px solid var(--accent-ink);
+  }
+  .tl-day[data-hot]::before {
+    background: var(--accent-ink);
+  }
+  .tl-day-head {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 6px;
+  }
+  .tl-day-head time {
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .tl-day-n {
+    font-family: var(--font-mono);
     font-size: 0.72rem;
+    color: var(--text-2);
+  }
+  .tl-item {
+    display: block;
+    padding: 7px 10px;
+    margin: 0 -10px 4px;
+    border-radius: var(--radius);
+    text-decoration: none;
+    color: var(--text);
+    transition: background-color 200ms var(--ease);
+  }
+  .tl-item:hover {
+    background: color-mix(in srgb, var(--hl) 34%, var(--surface));
+  }
+  .tl-item-t {
+    font-size: 0.95rem;
+    font-weight: 600;
+    line-height: 1.5;
+    word-break: break-word;
+  }
+  .tl-item:hover .tl-item-t {
+    color: var(--accent-ink);
+  }
+  .tl-item-s {
+    margin: 2px 0 0;
+    font-size: 0.8rem;
+    color: var(--text-2);
+    line-height: 1.5;
+  }
+  .tl-item-m {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin-top: 3px;
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    color: var(--text-2);
+  }
+  .cat-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+    flex: none;
+  }
+  .cat-dot[data-ci='0'] {
+    background: var(--accent);
+  }
+  .cat-dot[data-ci='1'] {
+    background: var(--accent-2);
+  }
+  .cat-dot[data-ci='2'] {
+    background: var(--hover);
+  }
+  .cat-dot[data-ci='3'] {
+    background: var(--hl);
   }
   .badge-draft {
     font-family: var(--font-sans);
@@ -511,83 +766,49 @@ const latest = sorted[0]?.data.date;
     padding: 0 6px;
     font-size: 0.72rem;
   }
-  .note-card h3 {
-    margin: 0 0 var(--sp-1);
-    font-size: 1.08rem;
-    line-height: 1.4;
-  }
-  .note-card h3 a {
-    color: var(--text);
-    text-decoration: none;
-    background-image: linear-gradient(var(--accent-ink), var(--accent-ink));
-    background-size: 0% 2px;
-    background-position: 0 100%;
-    background-repeat: no-repeat;
-    transition: background-size 200ms ease, color 150ms ease;
-  }
-  .note-card:hover h3 a {
-    color: var(--accent-ink);
-    background-size: 100% 2px;
-  }
-  .note-summary {
-    margin: 0 0 var(--sp-2);
-    color: var(--text-2);
-    font-size: 0.92rem;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
-  .tag-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--sp-1);
-  }
-  .tag {
-    font-size: 0.75rem;
-    color: var(--text-2);
-    background: var(--surface-2);
-    border-radius: 4px;
-    padding: 0 6px;
+  [data-tags][hidden],
+  .tl-month[hidden],
+  .tl-day[hidden] {
+    display: none !important;
   }
 
-  /* featured 大卡：跨两列 + 更大标题 + 三行摘要 + 加粗色条 */
-  .note-card.featured {
-    padding-left: calc(var(--sp-4) + 10px);
+  /* —— 河流式：脊柱居中，日期组交错左右 —— */
+  .tl-river::before {
+    left: 50%;
+    transform: translateX(-50%);
   }
-  .note-card.featured .card-bar {
-    width: 8px;
+  .tl-day-r {
+    width: calc(50% - 48px);
+    margin-bottom: var(--sp-5);
+    padding-left: 0;
   }
-  .note-card.featured h3 {
-    font-size: clamp(1.3rem, 2.2vw, 1.6rem);
+  .tl-day-r.pos-l {
+    margin-right: auto;
   }
-  .note-card.featured .note-summary {
-    -webkit-line-clamp: 3;
-    font-size: 0.98rem;
+  .tl-day-r.pos-r {
+    margin-left: auto;
   }
-  @media (min-width: 720px) {
-    .note-card.featured {
-      grid-column: span 2;
-      padding: var(--sp-4);
-      padding-left: calc(var(--sp-4) + 10px);
-    }
+  .tl-day-r::before {
+    top: 6px;
   }
-
-  /* —— 滚动进入动画（html.js 下初始隐藏；reduced-motion 直接可见）—— */
-  html.js .cat-section,
-  html.js .note-card {
-    opacity: 0;
-    transform: translateY(12px);
+  .tl-day-r.pos-l::before {
+    right: -53px;
   }
-  html.js .cat-section.in,
-  html.js .note-card.in {
-    opacity: 1;
-    transform: none;
-    transition: opacity 480ms ease var(--d, 0ms), transform 480ms ease var(--d, 0ms),
-      border-color 160ms ease;
+  .tl-day-r.pos-r::before {
+    left: -53px;
   }
-  html.js .note-card.in:hover {
-    transform: translateY(-2px);
+  .tl-day-r.pos-l .tl-day-head {
+    justify-content: flex-end;
+  }
+  .tl-day-r .tl-item {
+    padding: 9px 12px;
+  }
+  .tl-month-r {
+    padding-left: calc(50% + 28px);
+    margin: var(--sp-5) 0 var(--sp-4);
+  }
+  .tl-month-r::before {
+    left: calc(50% - 6px);
   }
 
   .empty {
@@ -602,45 +823,12 @@ const latest = sorted[0]?.data.date;
     font-size: 0.88rem;
   }
 
-  @media (prefers-reduced-motion: reduce) {
-    html.js .cat-section,
-    html.js .note-card,
-    html.js .cat-section.in,
-    html.js .note-card.in {
-      opacity: 1;
-      transform: none;
-      transition: none;
-    }
-    html.js .note-card.in:hover {
-      transform: none;
-    }
-    .note-card:hover {
-      transform: none;
-    }
-    .note-card::before {
-      transition: none;
-    }
-    .note-card h3 a {
-      transition: none;
-    }
-    .cat-jump a {
-      transition: none;
-      transform: none;
-    }
-    .search-hit:hover {
-      transform: none;
-    }
-    .search-box input {
-      transition: none;
-    }
-  }
-
   /* —— Pagefind 搜索（M4）—— */
   .search-box {
     position: relative;
     display: flex;
     align-items: center;
-    margin-bottom: var(--sp-3);
+    margin: var(--sp-3) 0 var(--sp-2);
   }
   .search-icon {
     position: absolute;
@@ -687,7 +875,7 @@ const latest = sorted[0]?.data.date;
     background: var(--hl);
   }
   .search-status {
-    margin: 0 0 var(--sp-3);
+    margin: 0 0 var(--sp-2);
     font-size: 0.85rem;
     color: var(--text-2);
     min-height: 1.4em;
@@ -696,11 +884,14 @@ const latest = sorted[0]?.data.date;
     display: flex;
     flex-direction: column;
     gap: var(--sp-2);
-    margin-bottom: var(--sp-5);
+    margin-bottom: var(--sp-4);
   }
-  /* 搜索态：隐藏分类浏览区 */
-  .notes-index.searching .cat-jump,
-  .notes-index.searching .cat-section {
+  .search-results[hidden] {
+    display: none !important;
+  }
+  /* 搜索态：隐藏词云 hero 与时间轴 */
+  .notes-index.searching .cx-zone,
+  .notes-index.searching .cx-axis-zone {
     display: none;
   }
   .search-hit {
@@ -750,5 +941,78 @@ const latest = sorted[0]?.data.date;
     color: var(--text);
     border-radius: 2px;
     padding: 0 1px;
+  }
+
+  /* —— 窄屏：词云降规格 + 时间轴降级左侧单列 —— */
+  @media (max-width: 879px) {
+    .cx-cloud {
+      gap: 3px 10px;
+      max-width: 100%;
+    }
+    .cx-cloud .tc-xl {
+      font-size: 1.5rem;
+    }
+    .cx-cloud .tc-lg {
+      font-size: 1.26rem;
+    }
+    .cx-cloud .tc-md {
+      font-size: 1.05rem;
+    }
+    .cx-cloud .tc-sm {
+      font-size: 0.9rem;
+    }
+    .cx-cloud .tc-xs {
+      font-size: 0.78rem;
+    }
+    .tl-river::before {
+      left: 5px;
+      transform: none;
+    }
+    .tl-river .tl-day-r {
+      width: auto;
+      margin-left: 0;
+      margin-right: 0;
+      padding-left: 30px;
+    }
+    .tl-day-r.pos-l::before,
+    .tl-day-r.pos-r::before {
+      left: 1px;
+      right: auto;
+    }
+    .tl-day-r.pos-l .tl-day-head {
+      justify-content: flex-start;
+    }
+    .tl-month-r {
+      padding-left: 30px;
+    }
+    .tl-month-r::before {
+      left: 0;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html.js [data-reveal],
+    html.js [data-reveal].in {
+      opacity: 1 !important;
+      transform: none !important;
+      transition: none !important;
+    }
+    .cx-scroll {
+      animation: none;
+    }
+    .tc,
+    .tl-item,
+    .search-hit,
+    .cw-all,
+    .search-box input {
+      transition: none;
+    }
+    .search-hit:hover,
+    .tc:hover {
+      transform: none;
+    }
+    .cx-cloud .tc:hover {
+      transform: none;
+    }
   }
 </style>
