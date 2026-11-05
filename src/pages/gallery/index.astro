@@ -1,6 +1,8 @@
 ---
 import Base from '../../layouts/Base.astro';
 import { getCollection } from 'astro:content';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 
 // 画廊数据：gallery.json 单文件集合；dev 含草稿，生产仅 published
 const gallery = await getCollection('gallery');
@@ -8,56 +10,92 @@ const raw = gallery[0]?.data.items ?? [];
 const isDev = import.meta.env.DEV;
 const visible = isDev ? raw : raw.filter((it) => it.status === 'published');
 const sorted = [...visible].sort((a, b) => b.date.getTime() - a.date.getTime());
-
-// 系列分组（全案 F-06：按系列/时间网格）；仅当 ≥2 个不同系列时才渲染节头
-const bySeries = new Map<string, typeof sorted>();
-for (const it of sorted) {
-  const key = it.series ?? '未收录系列';
-  const list = bySeries.get(key) ?? [];
-  list.push(it);
-  bySeries.set(key, list);
-}
-const groups = [...bySeries.entries()].sort(
-  (a, b) => b[1][0].date.getTime() - a[1][0].date.getTime(),
-);
-const showSeriesHeads = groups.length >= 2;
-const seriesCount = new Set(sorted.map((it) => it.series).filter(Boolean)).size;
+const total = sorted.length;
 
 const fmt = (d: Date) =>
   d.toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' });
+const pad2 = (n: number) => n.toString().padStart(2, '0');
 const thumbOf = (src: string) => src.replace(/\.webp$/, '-thumb.webp');
+
+// webp 文件头解析真实宽高（VP8X/VP8/VP8L 三种）——img width/height 属性防 CLS，不编造
+// 路径锚点用 process.cwd()：构建期 import.meta.url 指向 dist/pages/*.astro.mjs（生成物），不可用
+function webpSize(fileName: string): { w: number; h: number } {
+  const fallback = { w: 640, h: 480 };
+  try {
+    const b = readFileSync(resolve(process.cwd(), 'public/images/gallery', fileName));
+    if (b.length < 32 || b.toString('ascii', 0, 4) !== 'RIFF' || b.toString('ascii', 8, 12) !== 'WEBP') {
+      return fallback;
+    }
+    const tag = b.toString('ascii', 12, 16);
+    if (tag === 'VP8X') {
+      return {
+        w: 1 + (b[24] | (b[25] << 8) | (b[26] << 16)),
+        h: 1 + (b[27] | (b[28] << 8) | (b[29] << 16)),
+      };
+    }
+    if (tag === 'VP8 ') {
+      return { w: b[26] | (b[27] << 8), h: b[28] | (b[29] << 8) };
+    }
+    if (tag === 'VP8L') {
+      const bits = b.readUIntLE(21, 4);
+      return { w: (bits & 0x3fff) + 1, h: ((bits >> 14) & 0x3fff) + 1 };
+    }
+    return fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+const items = sorted.map((it) => ({ it, size: webpSize(thumbOf(it.src)) }));
 ---
 
-<Base title="画廊 · 艺术收藏" description="艺术作品收藏画廊：网格浏览与灯箱看大图">
-  <section class="gallery-index">
-    <header class="page-head">
-      <p class="head-kicker">GALLERY · 艺术收藏</p>
-      <h1 class="head-title"><span class="hl">画廊</span></h1>
-      <p class="head-meta">
-        <span class="stat-num">{sorted.length}</span> 张
-        {seriesCount > 0 && <> · <span class="stat-num">{seriesCount}</span> 个系列</>}
-        {isDev && raw.length > visible.length && <span class="dev-hint">（dev 预览：含草稿）</span>}
-      </p>
-    </header>
+{/* reveal 门闩必须先行：内联经典脚本在解析期执行，先于首帧加上 .js，
+    之后外链模块才布置 IntersectionObserver——杜绝内容闪现再隐藏 */}
+<script is:inline>document.documentElement.classList.add('js');</script>
 
-    {sorted.length === 0 ? (
-      <div class="empty">
-        <p>画廊内容筹备中。</p>
-        <p class="empty-sub">对 AI 说一句「帮我把这张画上传到画廊」即可归档——图片会自动转 WebP、压到长边 1920 并生成缩略图。</p>
-      </div>
-    ) : (
-      groups.map(([series, list]) => (
-        <section class="series-section">
-          {showSeriesHeads && (
-            <h2 class="series-head">
-              <span class="series-name">{series}</span>
-              <span class="series-count">{list.length} 张</span>
-            </h2>
-          )}
-          <div class="gallery-grid" data-pagefind-body>
-            {list.map((it, i) => (
+<Base wide title="画廊 · 艺术收藏" description="艺术作品收藏画廊：交错长廊逐幅展开，聚光灯下慢慢看。">
+  <a class="skip" href="#main">跳到主要内容</a>
+  <a class="im-back" href="/" aria-label="返回首页"><span>←</span>返回</a>
+  <canvas class="motes" aria-hidden="true"></canvas>
+  <div class="im-spot" aria-hidden="true"><i></i></div>
+
+  <div class="im-main">
+    <main id="main">
+      <header class="im-hero">
+        <p class="im-kicker">GALLERY - 艺术</p>
+        <div class="im-hero-grid">
+          <h1 class="im-title"><span>Pictures</span><span>山人 · 不识字</span></h1>
+          <div class="im-hero-side" aria-hidden="true">
+            <p class="im-side-num"><b>{total}</b>works</p>
+            <hr class="im-side-rule">
+            <p class="im-side-note">a deepening corridor</p>
+          </div>
+        </div>
+        <p class="im-sub">一次次心动的陈列，都是一段被留住的时光。</p>
+        {isDev && raw.length > visible.length && (
+          <p class="im-dev">dev 预览：含 {raw.length - visible.length} 张草稿</p>
+        )}
+        <p class="im-hint" aria-hidden="true">Scroll ↓</p>
+      </header>
+
+      <section class="co-tagline" aria-label="画廊题记">
+        <p class="co-tag-text" data-tagline>每一幅画面，都值得被慢慢看完。</p>
+      </section>
+
+      {total === 0 ? (
+        <div class="empty">
+          <p>画廊内容筹备中。</p>
+          <p class="empty-sub">对 AI 说一句「帮我把这张画上传到画廊」即可归档——图片会自动转 WebP、压到长边 1920 并生成缩略图。</p>
+        </div>
+      ) : (
+        <div class="co-list" data-pagefind-body>
+          {items.map(({ it, size }, i) => (
+            <figure class="co-row" data-reveal style={`--d:${Math.min(i, 5) * 60}ms`}>
               <button
-                class="art-card"
+                type="button"
+                class="art-card co-img"
+                data-lb
+                data-tilt
                 data-full={`/images/gallery/${it.src}`}
                 data-title={it.title ?? ''}
                 data-date={fmt(it.date)}
@@ -65,30 +103,35 @@ const thumbOf = (src: string) => src.replace(/\.webp$/, '-thumb.webp');
                 data-prompt={it.prompt ?? ''}
                 aria-label={`查看大图：${it.title ?? it.slug}`}
               >
-                <img
-                  src={`/images/gallery/${thumbOf(it.src)}`}
-                  data-full={`/images/gallery/${it.src}`}
-                  alt={it.title ?? it.slug}
-                  loading="lazy"
-                  decoding="async"
-                  width="640"
-                  height="480"
-                />
-                <figcaption class="art-meta">
-                  <span class="art-title">{it.title ?? it.slug}</span>
-                  <span class="art-date">
-                    {fmt(it.date)}
-                    {!showSeriesHeads && it.series && ` · ${it.series}`}
-                    {it.status === 'draft' && isDev && ' · 草稿'}
-                  </span>
-                </figcaption>
+                <span class="co-imgbox" data-parallax>
+                  <img
+                    src={`/images/gallery/${thumbOf(it.src)}`}
+                    data-full={`/images/gallery/${it.src}`}
+                    alt={it.title ?? it.slug}
+                    loading="lazy"
+                    decoding="async"
+                    width={size.w}
+                    height={size.h}
+                  />
+                </span>
               </button>
-            ))}
-          </div>
-        </section>
-      ))
-    )}
-  </section>
+              <figcaption class="co-cap">
+                <span class="co-no" aria-hidden="true">{pad2(i + 1)}</span>
+                <h2 class="co-title">{it.title ?? it.slug}</h2>
+                <p class="co-date">
+                  {fmt(it.date)}
+                  {it.status === 'draft' && isDev && <span class="co-draft"> · 草稿</span>}
+                </p>
+                <p class="co-idx">{pad2(i + 1)} / {pad2(total)}</p>
+              </figcaption>
+            </figure>
+          ))}
+        </div>
+      )}
+    </main>
+  </div>
+
+  <button type="button" class="im-top" id="im-top" aria-label="返回顶部">↑</button>
 
   {/* 灯箱：默认隐藏，无 JS 时不渲染交互也不报错 */}
   <div id="lightbox" class="lightbox" hidden>
@@ -108,273 +151,452 @@ const thumbOf = (src: string) => src.replace(/\.webp$/, '-thumb.webp');
       <button class="lb-nav lb-next" id="lb-next" aria-label="下一张">→</button>
     </figure>
   </div>
+
+  {/* 页级 head 注入（Base head 插槽）：暗色令牌覆盖 + 走廊全套样式随本页进 <head>。
+      is:inline 需命中 body/html/:root 等 Base 作用域之外的选择器；经插槽落在 tokens.css
+      内联块之后——同名令牌覆盖层叠正确，且消除样式留居 body 末尾时的亮色 FOUC。
+      字体族与灯箱叠层色组保持站点原值不变。 */}
+  <Fragment slot="head">
+  <style is:inline>
+  /* html:root 双特异性（0,1,1 > tokens.css :root 的 0,1,0）：Astro 会把导入/组件样式追加到
+     head 末尾，本块经插槽落在其之前，纯靠顺序会输——加元素选择器确定性压过，与顺序解耦 */
+  html:root {
+    /* 暗色展厅色板（landing-page-design Part B）：本页覆盖 tokens.css 同名令牌 */
+    --bg: #000000; --surface: #181818; --surface-2: #1f1f1f; --line: #313131;
+    --text: #ffffff; --text-2: #9b9b9b; --text-3: #6b6b6b;
+    --accent: #ffb664; --accent-2: #ffd79a; --accent-ink: #ffd79a;
+    /* 间距阶梯 / 圆角 / 缓动（仅这些值） */
+    --s2: 2px; --s4: 4px; --s8: 8px; --s12: 12px; --s16: 16px; --s24: 24px;
+    --s32: 32px; --s40: 40px; --s48: 48px; --s64: 64px; --s80: 80px; --s96: 96px;
+    --r4: 4px; --r8: 8px; --r12: 12px; --r16: 16px; --r24: 24px;
+    --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  /* 统一 border-box：Base 的通用重置被 Astro 作用域化为 [data-astro-cid-base]，只命中 html/body，
+     本页元素仍是 content-box——width:100% + 水平内边距会撑出 48px 横滚，此处自行补齐 */
+  *, *::before, *::after { box-sizing: border-box; }
+  body { overflow-x: hidden; }
+  img { max-width: 100%; }
+  a { color: var(--accent-2); }
+  button { font-family: inherit; }
+  /* 页脚与内容同宽：Base 的作用域规则带属性选择器（0,4,0）压过普通类选择器，仅本页用 !important 收死 */
+  .page-wide .footer { max-width: 1200px !important; }
+  /* —— skip link —— */
+  .skip { position: absolute; left: -9999px; top: 0; z-index: 120; background: var(--surface);
+    color: var(--text); padding: var(--s8) var(--s16); border-radius: 0 0 var(--r8) 0; text-decoration: none; }
+  .skip:focus { left: 0; }
+  /* —— 左上返回（幽灵字：与 kicker/meta 列同族 mono 小字，默认低调、悬停浮现）—— */
+  .im-back { position: fixed; top: var(--s24); left: var(--s24); z-index: 55;
+    display: inline-flex; align-items: center; gap: var(--s8);
+    padding: var(--s4) 0; text-decoration: none;
+    font-family: var(--font-mono); font-size: 12px; line-height: 16px; letter-spacing: 0.14em;
+    color: var(--text-3); opacity: 0.6;
+    transition: opacity 300ms var(--ease), color 300ms var(--ease); }
+  .im-back span { display: inline-block; transition: transform 300ms var(--ease); }
+  .im-back:hover { opacity: 1; color: var(--text); }
+  .im-back:hover span { transform: translateX(-3px); }
+  .im-back:active { opacity: 0.75; }
+  .im-back:focus-visible { outline: 1px solid var(--accent); outline-offset: 4px; opacity: 1; color: var(--text); }
+  /* —— 右下返回顶部（幽灵环：无玻璃底无 accent 环，发丝边+低透明度静止，悬停才明亮）—— */
+  .im-top { position: fixed; right: var(--s24); bottom: var(--s24); z-index: 55;
+    width: 36px; height: 36px; border: none; border-radius: 999px; cursor: pointer;
+    background: transparent; color: var(--text-3); font-size: 15px;
+    box-shadow: inset 0 0 0 1px rgba(155, 155, 155, 0.26);
+    opacity: 0; visibility: hidden; transform: translateY(6px);
+    transition: opacity 400ms var(--ease), transform 400ms var(--ease), visibility 400ms var(--ease),
+      box-shadow 300ms var(--ease), color 300ms var(--ease); }
+  .im-top.show { opacity: 0.5; visibility: visible; transform: none; }
+  .im-top:hover { opacity: 1; color: var(--text); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.45); }
+  .im-top:active { transform: scale(0.94); }
+  .im-top:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; opacity: 1; color: var(--text); }
+  /* —— 氛围层：萤火光尘 canvas（低强度化，画是主角）—— */
+  .motes { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+  .im-main { position: relative; z-index: 1; }
+  /* —— 聚光灯：暖色光斑跟随鼠标（仅精细指针；reduced-motion/触屏不渲染）—— */
+  .im-spot { position: fixed; inset: 0; z-index: 3; pointer-events: none; overflow: hidden;
+    opacity: 0; transition: opacity 600ms var(--ease); }
+  .im-spot.on { opacity: 1; }
+  .im-spot i { position: absolute; left: 0; top: 0; width: 560px; height: 560px; margin: -280px 0 0 -280px;
+    border-radius: 50%; will-change: transform;
+    background: radial-gradient(circle, rgba(255, 182, 100, 0.17), rgba(255, 182, 100, 0.07) 40%, rgba(255, 182, 100, 0) 70%); }
+  @media (hover: none), (prefers-reduced-motion: reduce) { .im-spot { display: none; } }
+  /* —— 滚动显现：rise 32px + fade，只播一次 —— */
+  html.js [data-reveal] { opacity: 0; transform: translateY(32px); }
+  html.js [data-reveal].in { opacity: 1; transform: none;
+    transition: opacity 700ms var(--ease) var(--d, 0ms), transform 700ms var(--ease) var(--d, 0ms); }
+  @media (prefers-reduced-motion: reduce) {
+    html.js [data-reveal], html.js [data-reveal].in { opacity: 1 !important; transform: none !important; transition: none !important; }
+  }
+  /* —— 页头：中英两行主标题 + 右侧主题栏（计数 + 英文主题句）+ 中文副题 —— */
+  .im-hero { min-height: 92svh; display: flex; flex-direction: column; justify-content: center;
+    padding: var(--s80) var(--s24) var(--s64); max-width: 1200px; margin: 0 auto; width: 100%; }
+  .im-kicker { margin: 0 0 var(--s32); font-family: var(--font-mono); font-size: 12px; line-height: 16px;
+    letter-spacing: 0.24em; color: var(--accent); }
+  .im-hero-grid { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--s48); flex-wrap: wrap; }
+  .im-title { margin: 0; font-weight: 600; line-height: 1.04;
+    font-size: clamp(40px, 10vw, 88px);
+    background: linear-gradient(to right, #ffffff, #9b9b9b);
+    -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .im-title span { display: block; }
+  .im-hero-side { display: flex; flex-direction: column; gap: var(--s8); padding-bottom: var(--s8);
+    font-family: var(--font-mono); font-size: 12px; line-height: 16px; color: var(--text-3); text-align: right; }
+  .im-side-num b { display: block; font-size: 30px; line-height: 36px; font-weight: 600; color: var(--accent-2); }
+  .im-side-rule { border: 0; border-top: 1px solid var(--line); width: 40px; margin: var(--s8) 0 var(--s8) auto; }
+  .im-side-note { margin: 0; font-family: var(--font-sans); font-size: 13px; line-height: 21px; color: var(--text-2); }
+  .im-sub { margin: var(--s32) 0 0; font-size: 18px; line-height: 28px; color: var(--text-2); max-width: 680px; }
+  .im-dev { margin: var(--s12) 0 0; font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.08em; color: var(--text-3); }
+  .im-hint { margin: var(--s48) 0 0; font-family: var(--font-mono); font-size: 12px; line-height: 16px;
+    color: var(--text-3); animation: hintBreath 2.8s var(--ease) infinite; }
+  @keyframes hintBreath { 0%, 100% { opacity: 0.45; transform: translateY(0); } 50% { opacity: 1; transform: translateY(6px); } }
+  @media (prefers-reduced-motion: reduce) { .im-hint { animation: none; opacity: 0.7; } }
+  @media (max-width: 560px) { .im-hero-side { text-align: left; } }
+  /* —— 交错长廊 —— */
+  .co-list { display: flex; flex-direction: column; gap: var(--s96); padding: 0 var(--s24) var(--s96);
+    max-width: 1200px; margin: 0 auto; width: 100%; }
+  .co-row { display: flex; align-items: center; gap: var(--s48); margin: 0; }
+  .co-row:nth-child(even) { flex-direction: row-reverse; }
+  .co-img { flex: 1.6; min-width: 0; padding: 0; border: none; background: none; cursor: zoom-in;
+    display: block; border-radius: var(--r16); }
+  .co-img:focus-visible { outline: 2px solid var(--accent); outline-offset: var(--s4); border-radius: var(--r16); }
+  .co-imgbox { display: block; overflow: hidden; border-radius: var(--r16); }
+  .co-imgbox img { display: block; width: 100%; height: auto;
+    transform: translateY(var(--py, 0px)) scale(var(--s, 1.06));
+    transition: transform 600ms var(--ease); will-change: transform; }
+  .co-img:hover .co-imgbox img { --s: 1.1; }
+  .co-img:active .co-imgbox img { --s: 1.04; }
+  .co-cap { flex: 1; min-width: 0; }
+  .co-no { display: block; font-family: var(--font-mono); font-weight: 600; line-height: 1;
+    font-size: clamp(72px, 10vw, 128px); color: var(--surface-2); margin-bottom: var(--s16); user-select: none; }
+  .co-title { margin: 0 0 var(--s8); font-size: 30px; line-height: 36px; font-weight: 600; text-wrap: balance; }
+  .co-date { margin: 0; font-family: var(--font-mono); font-size: 12px; line-height: 16px; color: var(--text-3); }
+  .co-draft { color: var(--accent); }
+  .co-idx { margin: var(--s16) 0 0; font-family: var(--font-mono); font-size: 14px; line-height: 20px; color: var(--accent); }
+  /* —— 题记：单行 + 头尾破折号框住中间（艺术元素，静态框不参与逐字动画）—— */
+  .co-tagline { padding: var(--s96) var(--s24); max-width: 1200px; margin: 0 auto; width: 100%; }
+  .co-tag-text { margin: 0; font-size: clamp(21px, 3.6vw, 44px); line-height: 1.3;
+    font-weight: 600; white-space: nowrap; }
+  .co-tag-text::before, .co-tag-text::after { content: "——"; color: var(--accent); opacity: 0.55; }
+  .co-tag-text::before { margin-right: 0.32em; }
+  .co-tag-text::after { margin-left: 0.32em; }
+  @media (max-width: 600px) {
+    .co-tag-text::before, .co-tag-text::after { display: none; }
+  }
+  .tl-ch { color: var(--text); opacity: 0.28; transition: opacity 500ms var(--ease), color 500ms var(--ease); }
+  .co-tag-text.lit .tl-ch { opacity: 1; }
+  @media (prefers-reduced-motion: reduce) { .tl-ch { opacity: 1 !important; transition: none !important; } }
+  @media (max-width: 879px) {
+    .co-list { gap: var(--s64); }
+    .co-row, .co-row:nth-child(even) { flex-direction: column; gap: var(--s24); }
+    .co-img { width: 100%; }
+    .co-no { font-size: 72px; }
+  }
+  /* —— 空态 —— */
+  .empty { background: var(--surface); border: 1px dashed var(--line);
+    border-radius: var(--r16); padding: var(--s16); margin: 0 var(--s24) var(--s96);
+    text-align: center; color: var(--text-2); max-width: 1200px; width: calc(100% - var(--s48)); align-self: center; }
+  .empty-sub { font-size: 0.88rem; }
+  /* —— 灯箱：深色观赏模式 —— */
+  .lightbox[hidden] { display: none; }
+  .lightbox { position: fixed; inset: 0; z-index: 100; display: flex; align-items: center;
+    justify-content: center; padding: var(--s24); }
+  .lb-backdrop { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.94); }
+  .lb-panel { position: relative; margin: 0; max-width: min(1100px, 94vw); max-height: 92vh;
+    display: flex; flex-direction: column; align-items: center; gap: var(--s16);
+    animation: lb-in 180ms var(--ease); }
+  @keyframes lb-in { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
+  .lb-img { max-width: 100%; max-height: 76vh; object-fit: contain; border-radius: var(--r16); background: var(--overlay); }
+  .lb-caption { width: 100%; color: var(--on-overlay); text-align: center; }
+  .lb-row { display: flex; align-items: baseline; justify-content: center; gap: var(--s24); }
+  .lb-title { font-size: 18px; line-height: 28px; }
+  .lb-counter { font-family: var(--font-mono); font-size: 12px; line-height: 16px; color: var(--on-overlay-2); }
+  .lb-meta { font-family: var(--font-mono); font-size: 12px; line-height: 16px; color: var(--on-overlay-2); }
+  .lb-prompt { margin: var(--s4) 0 0; font-size: 0.8rem; line-height: 1.6; color: var(--on-overlay-3); max-width: 60ch; }
+  .lb-close, .lb-nav { position: absolute; border: none; border-radius: 50%;
+    background: rgba(255, 255, 255, 0.14); color: var(--on-overlay); cursor: pointer;
+    transition: background-color 300ms var(--ease), transform 300ms var(--ease); }
+  .lb-close:hover, .lb-nav:hover { background: rgba(255, 255, 255, 0.28); }
+  .lb-close:active, .lb-nav:active { transform: scale(0.96); }
+  .lb-close { top: calc(-1 * var(--s40)); right: 0; width: 36px; height: 36px; font-size: 15px; }
+  .lb-nav { top: 50%; transform: translateY(-50%); width: 44px; height: 44px; font-size: 18px; }
+  .lb-nav:active { transform: translateY(-50%) scale(0.96); }
+  .lb-prev { left: calc(-1 * var(--s48)); }
+  .lb-next { right: calc(-1 * var(--s48)); }
+  .lb-close:focus-visible, .lb-nav:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  @media (max-width: 720px) { .lb-prev { left: var(--s4); } .lb-next { right: var(--s4); } }
+  body.lb-open { overflow: hidden; }
+  @media (prefers-reduced-motion: reduce) { .lb-panel { animation: none; } }
+  </style>
+  </Fragment>
 </Base>
 
-<style>
-  .gallery-index {
-    padding: var(--sp-5) 0;
-  }
-
-  /* —— 页头：与笔记/项目列表同一编辑式语言 —— */
-  .page-head {
-    margin-bottom: var(--sp-5);
-  }
-  .head-kicker {
-    margin: 0 0 var(--sp-2);
-    font-family: var(--font-mono);
-    font-size: 12px;
-    letter-spacing: 0.24em;
-    color: var(--accent-ink);
-  }
-  .head-title {
-    margin: 0;
-    font-size: clamp(2.6rem, 7vw, 4.2rem);
-    font-weight: 600;
-    line-height: 1.1;
-  }
-  .hl {
-    position: relative;
-    z-index: 0;
-    display: inline-block;
-    padding: 0 0.1em;
-  }
-  .hl::before {
-    content: '';
-    position: absolute;
-    inset: 14% -0.04em 10%;
-    background: var(--hl);
-    transform: rotate(-1deg);
-    border-radius: 0.14em;
-    z-index: -1;
-  }
-  .head-meta {
-    margin: var(--sp-3) 0 0;
-    font-size: 1rem;
-    color: var(--text-2);
-  }
-  .stat-num {
-    font-family: var(--font-mono);
-    font-size: 1.5rem;
-    font-weight: 600;
-    color: var(--accent-ink);
-    padding: 0 2px;
-  }
-  .dev-hint {
-    margin-left: var(--sp-2);
-    font-size: 0.85rem;
-    color: var(--accent-ink);
-  }
-
-  /* —— 系列节头 —— */
-  .series-section {
-    margin-bottom: var(--sp-5);
-  }
-  .series-head {
-    display: flex;
-    align-items: baseline;
-    gap: var(--sp-2);
-    margin: 0 0 var(--sp-4);
-    padding-bottom: var(--sp-2);
-    border-bottom: 2px solid var(--line);
-  }
-  .series-name {
-    font-size: clamp(1.3rem, 3vw, 1.8rem);
-    font-weight: 600;
-    line-height: 1.2;
-  }
-  .series-count {
-    margin-left: auto;
-    font-family: var(--font-mono);
-    font-size: 0.8rem;
-    color: var(--text-2);
-  }
-
-  /* —— masonry 网格：保留画作原始比例，不裁切 —— */
-  .gallery-grid {
-    columns: 3;
-    column-gap: var(--sp-3);
-  }
-  @media (max-width: 960px) {
-    .gallery-grid { columns: 2; }
-  }
-  @media (max-width: 600px) {
-    .gallery-grid { columns: 1; }
-  }
-  .art-card {
-    display: block;
-    width: 100%;
-    break-inside: avoid;
-    margin: 0 0 var(--sp-3);
-    padding: 0;
-    border: 1px solid var(--line);
-    border-radius: var(--radius-lg);
-    background: var(--surface);
-    overflow: hidden;
-    cursor: zoom-in;
-    text-align: left;
-    font: inherit;
-    color: inherit;
-    transition: transform 160ms ease, border-color 160ms ease;
-  }
-  .art-card:hover {
-    transform: translateY(-2px);
-    border-color: var(--accent-ink);
-  }
-  .art-card img {
-    display: block;
-    width: 100%;
-    height: auto;
-    background: var(--surface-2);
-  }
-  .art-meta {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    padding: var(--sp-2) var(--sp-3);
-  }
-  .art-title {
-    font-size: 0.95rem;
-    font-weight: 600;
-  }
-  .art-date {
-    font-family: var(--font-mono);
-    font-size: 0.75rem;
-    color: var(--text-2);
-  }
-
-  /* —— 空态 —— */
-  .empty {
-    background: var(--surface);
-    border: 1px dashed var(--line);
-    border-radius: var(--radius-lg);
-    padding: var(--sp-5);
-    text-align: center;
-    color: var(--text-2);
-  }
-  .empty-sub {
-    font-size: 0.88rem;
-  }
-
-  /* —— 灯箱：深色观赏模式（亮主题内的对比度设计，同代码块 rationale）—— */
-  .lightbox[hidden] {
-    display: none; /* display:flex 会覆盖 hidden 属性的 UA 默认值，必须显式声明 */
-  }
-  .lightbox {
-    position: fixed;
-    inset: 0;
-    z-index: 100;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: var(--sp-4);
-  }
-  .lb-backdrop {
-    position: absolute;
-    inset: 0;
-    background: rgba(23, 27, 31, 0.94);
-  }
-  .lb-panel {
-    position: relative;
-    margin: 0;
-    max-width: min(1100px, 94vw);
-    max-height: 92vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: var(--sp-2);
-    animation: lb-in 180ms ease;
-  }
-  @keyframes lb-in {
-    from { opacity: 0; transform: scale(0.98); }
-    to   { opacity: 1; transform: scale(1); }
-  }
-  .lb-img {
-    max-width: 100%;
-    max-height: 76vh;
-    object-fit: contain;
-    border-radius: var(--radius);
-    background: var(--overlay);
-  }
-  .lb-caption {
-    width: 100%;
-    color: var(--on-overlay);
-    text-align: center;
-  }
-  .lb-row {
-    display: flex;
-    align-items: baseline;
-    justify-content: center;
-    gap: var(--sp-3);
-  }
-  .lb-title {
-    font-size: 1.05rem;
-  }
-  .lb-counter {
-    font-family: var(--font-mono);
-    font-size: 0.8rem;
-    color: var(--on-overlay-2);
-  }
-  .lb-meta {
-    font-family: var(--font-mono);
-    font-size: 0.78rem;
-    color: var(--on-overlay-2);
-  }
-  .lb-prompt {
-    margin: var(--sp-1) 0 0;
-    font-size: 0.8rem;
-    color: var(--on-overlay-3);
-    max-width: 60ch;
-  }
-  .lb-close {
-    position: absolute;
-    top: calc(-1 * var(--sp-4));
-    right: 0;
-    width: 36px;
-    height: 36px;
-    border: none;
-    border-radius: 50%;
-    background: rgba(232, 228, 218, 0.14);
-    color: var(--on-overlay);
-    font-size: 15px;
-    cursor: pointer;
-  }
-  .lb-close:hover {
-    background: rgba(232, 228, 218, 0.28);
-  }
-  .lb-nav {
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 44px;
-    height: 44px;
-    border: none;
-    border-radius: 50%;
-    background: rgba(232, 228, 218, 0.14);
-    color: var(--on-overlay);
-    font-size: 18px;
-    cursor: pointer;
-  }
-  .lb-nav:hover {
-    background: rgba(232, 228, 218, 0.28);
-  }
-  .lb-prev { left: calc(-1 * var(--sp-5)); }
-  .lb-next { right: calc(-1 * var(--sp-5)); }
-  @media (max-width: 720px) {
-    .lb-prev { left: var(--sp-1); }
-    .lb-next { right: var(--sp-1); }
-  }
-  body.lb-open {
-    overflow: hidden;
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .art-card { transition: none; }
-    .lb-panel { animation: none; }
-  }
-</style>
-
 <script>
-  // 灯箱：点击 1 次打开 · ←/→/ESC 键盘 · 触屏滑动 · 相邻预加载防白屏
+  // 画廊 · 深渊回廊交互（版一样板落地）：滚动显现 / 萤火光尘 / 逐字题记 / 视差 / 倾斜 / 回顶 / 聚光灯 + 灯箱
+  // 全部 vanilla；Astro 打包为外链模块（deferred），reveal 门闩由页首内联脚本提前加 .js 防闪现
+
+  // 0) reveal 门闩幂等保险（内联脚本已加过）
+  document.documentElement.classList.add('js');
+
+  // 1) 滚动显现
+  (function () {
+    const targets = document.querySelectorAll<HTMLElement>('[data-reveal]');
+    if (!('IntersectionObserver' in window)) {
+      targets.forEach((t) => t.classList.add('in'));
+      return;
+    }
+    const io = new IntersectionObserver(
+      (es) => {
+        for (const e of es) {
+          if (e.isIntersecting) {
+            e.target.classList.add('in');
+            io.unobserve(e.target);
+          }
+        }
+      },
+      { rootMargin: '0px 0px -36px 0px' },
+    );
+    targets.forEach((t) => io.observe(t));
+  })();
+
+  // 2) 萤火光尘（氛围压强：画是主角；reduced-motion 只绘静态一帧）
+  (function () {
+    const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const cv = document.querySelector<HTMLCanvasElement>('.motes');
+    if (!cv) return;
+    const ctx = cv.getContext('2d');
+    if (!ctx) return;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    let w = 0;
+    let h = 0;
+    let motes: { x: number; y: number; z: number; ph: number; f: number }[] = [];
+    let raf = 0;
+    let t0 = 0;
+    const rng = (s: number) => () => {
+      s = (s * 16807) % 2147483647;
+      return s / 2147483647;
+    };
+    function build() {
+      const r = rng(7);
+      const n = w < 640 ? 34 : 70;
+      motes = [];
+      for (let i = 0; i < n; i++) {
+        motes.push({ x: r() * w, y: r() * h, z: r(), ph: r() * Math.PI * 2, f: 0.5 + r() * 1.5 });
+      }
+    }
+    function resize() {
+      w = window.innerWidth;
+      h = window.innerHeight;
+      cv.width = w * dpr;
+      cv.height = h * dpr;
+      cv.style.width = w + 'px';
+      cv.style.height = h + 'px';
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      build();
+      if (reduced) draw(0);
+    }
+    function glow(x: number, y: number, rad: number, color: string, a: number) {
+      const g = ctx.createRadialGradient(x, y, 0, x, y, Math.max(rad, 0.1));
+      g.addColorStop(0, color);
+      g.addColorStop(1, 'rgba(255,182,100,0)');
+      ctx.globalAlpha = a;
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(x, y, Math.max(rad, 0.1), 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+    function draw(t: number) {
+      ctx.clearRect(0, 0, w, h);
+      ctx.globalCompositeOperation = 'lighter';
+      const m = Math.min(w, h) / 300;
+      for (let i = 0; i < motes.length; i++) {
+        const p = motes[i];
+        const z = p.z;
+        const size = (1.2 + z * z * 22) * m;
+        const vy = (5 + z * 16) * m;
+        const y = ((p.y - t * vy) % (h + 60) + h + 60) % (h + 60) - 30;
+        const x = p.x + Math.sin(t * 0.4 * p.f + p.ph) * 18 * m;
+        const fl = 0.55 + 0.45 * Math.sin(t * p.f * 2.2 + p.ph);
+        const a = (z > 0.8 ? 0.1 : 0.34) * fl * 0.6;
+        glow(x, y, size * (z > 0.8 ? 1.6 : 1), z > 0.5 ? 'rgba(255,182,100,1)' : 'rgba(255,215,154,1)', a);
+        if (z < 0.8) {
+          ctx.fillStyle = 'rgba(255,236,200,' + (0.7 * fl).toFixed(3) + ')';
+          ctx.beginPath();
+          ctx.arc(x, y, Math.max(0.6, size * 0.12), 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+      ctx.globalCompositeOperation = 'source-over';
+    }
+    function loop(ts: number) {
+      if (!t0) t0 = ts;
+      draw((ts - t0) / 1000);
+      raf = requestAnimationFrame(loop);
+    }
+    resize();
+    if (!reduced) {
+      raf = requestAnimationFrame(loop);
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+          cancelAnimationFrame(raf);
+          raf = 0;
+        } else if (!raf) {
+          raf = requestAnimationFrame(loop);
+        }
+      });
+    }
+    window.addEventListener('resize', resize, { passive: true });
+  })();
+
+  // 3) 题记逐字点亮（进入视口即整体 lit，逐字过渡由 CSS 承担）
+  (function () {
+    const el = document.querySelector<HTMLElement>('[data-tagline]');
+    if (!el) return;
+    const chars = Array.from((el.textContent ?? '').trim());
+    el.textContent = '';
+    for (const ch of chars) {
+      const s = document.createElement('span');
+      s.className = 'tl-ch';
+      s.textContent = ch;
+      el.appendChild(s);
+    }
+    if (!('IntersectionObserver' in window)) {
+      el.classList.add('lit');
+      return;
+    }
+    const io = new IntersectionObserver(
+      (es) => {
+        for (const e of es) {
+          if (e.isIntersecting) {
+            el.classList.add('lit');
+            io.unobserve(el);
+          }
+        }
+      },
+      { rootMargin: '0px 0px -20% 0px' },
+    );
+    io.observe(el);
+  })();
+
+  // 4) 画作视差（只改自定义属性，GPU 友好）
+  (function () {
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const items = Array.from(document.querySelectorAll<HTMLElement>('[data-parallax]'));
+    if (!items.length) return;
+    let tick = false;
+    function upd() {
+      tick = false;
+      const vh = window.innerHeight;
+      for (const el of items) {
+        const r = el.getBoundingClientRect();
+        if (r.bottom < -240 || r.top > vh + 240) continue;
+        const p = (r.top + r.height / 2 - vh / 2) / vh;
+        el.style.setProperty('--py', (p * -36).toFixed(1) + 'px');
+      }
+    }
+    window.addEventListener('scroll', () => {
+      if (!tick) {
+        tick = true;
+        requestAnimationFrame(upd);
+      }
+    }, { passive: true });
+    upd();
+  })();
+
+  // 5) 3D 倾斜（仅精细指针）
+  (function () {
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    if (!matchMedia('(pointer: fine)').matches) return;
+    document.querySelectorAll<HTMLElement>('[data-tilt]').forEach((el) => {
+      let raf = 0;
+      let rx = 0;
+      let ry = 0;
+      function apply() {
+        raf = 0;
+        el.style.transform = 'perspective(900px) rotateX(' + rx.toFixed(2) + 'deg) rotateY(' + ry.toFixed(2) + 'deg)';
+      }
+      el.addEventListener('pointermove', (e) => {
+        const r = el.getBoundingClientRect();
+        ry = ((e.clientX - r.left) / r.width - 0.5) * 6;
+        rx = -((e.clientY - r.top) / r.height - 0.5) * 6;
+        if (!raf) raf = requestAnimationFrame(apply);
+      });
+      el.addEventListener('pointerleave', () => {
+        rx = 0;
+        ry = 0;
+        if (!raf) raf = requestAnimationFrame(apply);
+      });
+    });
+  })();
+
+  // 6) 返回顶部（滚过半屏现身，幽灵环）
+  (function () {
+    const btn = document.getElementById('im-top');
+    if (!btn) return;
+    let tick = false;
+    function upd() {
+      tick = false;
+      btn.classList.toggle('show', window.scrollY > window.innerHeight * 0.5);
+    }
+    window.addEventListener('scroll', () => {
+      if (!tick) {
+        tick = true;
+        requestAnimationFrame(upd);
+      }
+    }, { passive: true });
+    upd();
+    btn.addEventListener('click', () => {
+      window.scrollTo({
+        top: 0,
+        behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+      });
+    });
+  })();
+
+  // 7) 鼠标聚光灯：暖色光斑 rAF 缓动跟手，首次移动淡入、离开文档淡出
+  (function () {
+    const layer = document.querySelector<HTMLElement>('.im-spot');
+    if (!layer) return;
+    if (!matchMedia('(hover: hover) and (pointer: fine)').matches) return;
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const dot = layer.querySelector<HTMLElement>('i');
+    if (!dot) return;
+    let tx = window.innerWidth / 2;
+    let ty = window.innerHeight * 0.4;
+    let x = tx;
+    let y = ty;
+    let raf = 0;
+    let shown = false;
+    function loop() {
+      x += (tx - x) * 0.18;
+      y += (ty - y) * 0.18;
+      dot.style.transform = 'translate3d(' + x.toFixed(1) + 'px, ' + y.toFixed(1) + 'px, 0)';
+      if (Math.abs(tx - x) > 0.5 || Math.abs(ty - y) > 0.5) {
+        raf = requestAnimationFrame(loop);
+      } else {
+        raf = 0;
+      }
+    }
+    function kick() {
+      if (!raf) raf = requestAnimationFrame(loop);
+    }
+    window.addEventListener('pointermove', (e) => {
+      if (e.pointerType !== 'mouse') return;
+      tx = e.clientX;
+      ty = e.clientY;
+      if (!shown) {
+        shown = true;
+        layer.classList.add('on');
+      }
+      kick();
+    }, { passive: true });
+    document.addEventListener('pointerleave', () => {
+      layer.classList.remove('on');
+    });
+    document.addEventListener('pointerenter', () => {
+      if (shown) layer.classList.add('on');
+    });
+  })();
+
+  // 8) 灯箱：点击打开 · ←/→/ESC 键盘 · 触屏滑动 · 相邻预加载防白屏 · 缩略图缺失回退主图
   const cards = Array.from(document.querySelectorAll<HTMLButtonElement>('.art-card'));
   const lb = document.getElementById('lightbox')!;
   const lbImg = document.getElementById('lb-img') as HTMLImageElement;
@@ -460,7 +682,7 @@ const thumbOf = (src: string) => src.replace(/\.webp$/, '-thumb.webp');
     }
   });
 
-  // 触屏滑动切换（全案 F-06：手势）
+  // 触屏滑动切换
   let touchX = 0;
   lb.addEventListener('touchstart', (e) => {
     touchX = e.changedTouches[0].clientX;

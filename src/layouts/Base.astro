@@ -48,6 +48,9 @@ const isActive = (href: string) =>
     <meta property="og:site_name" content="作品集 · 个人档案" />
     <meta property="og:locale" content="zh_CN" />
     <meta name="twitter:card" content="summary" />
+    {/* 页面级 head 注入点（可选）：用于把关键样式/元信息放进 head 且晚于全局样式，
+        保证同名令牌覆盖与 body/html/:root 选择器的层叠顺序（沉浸画廊页暗色令牌依赖此槽位） */}
+    <slot name="head" />
   </head>
   <body>
     <!-- 开机动画挂载点（必须与 splash.js 的 ROOT_ID 一致；dsu-boot 类由首屏兜底 CSS 立即盖黑） -->
