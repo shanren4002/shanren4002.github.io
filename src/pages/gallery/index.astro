@@ -229,7 +229,7 @@ const items = sorted.map((it) => ({ it, size: webpSize(thumbOf(it.src)) }));
   /* —— 页头：中英两行主标题 + 右侧主题栏（计数 + 英文主题句）+ 中文副题 —— */
   .im-hero { min-height: 92svh; display: flex; flex-direction: column; justify-content: center;
     padding: var(--s80) var(--s24) var(--s64); max-width: 1200px; margin: 0 auto; width: 100%; }
-  .im-kicker { margin: 0 0 var(--s32); font-family: var(--font-mono); font-size: 12px; line-height: 16px;
+  .im-kicker { margin: 0 0 var(--s32); font-family: var(--font-mono); font-size: 14px; line-height: 16px;
     letter-spacing: 0.24em; color: var(--accent); }
   .im-hero-grid { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--s48); flex-wrap: wrap; }
   .im-title { margin: 0; font-weight: 600; line-height: 1.04;
@@ -237,12 +237,17 @@ const items = sorted.map((it) => ({ it, size: webpSize(thumbOf(it.src)) }));
     background: linear-gradient(to right, #ffffff, #9b9b9b);
     -webkit-background-clip: text; background-clip: text; color: transparent; }
   .im-title span { display: block; }
+  .im-title span:first-child { font-size: clamp(48px, 9vw, 96px); }
+  .im-title span:last-child { font-size: clamp(20px, 3.4vw, 32px); }
   .im-hero-side { display: flex; flex-direction: column; gap: var(--s8); padding-bottom: var(--s8);
     font-family: var(--font-mono); font-size: 12px; line-height: 16px; color: var(--text-3); text-align: right; }
-  .im-side-num b { display: block; font-size: 30px; line-height: 36px; font-weight: 600; color: var(--accent-2); }
+  .im-side-num { margin: 0; font-size: 20px; }
+  .im-side-num b { display: block; font-size: 36px; line-height: 36px; font-weight: 600; color: var(--accent-2); }
   .im-side-rule { border: 0; border-top: 1px solid var(--line); width: 40px; margin: var(--s8) 0 var(--s8) auto; }
-  .im-side-note { margin: 0; font-family: var(--font-sans); font-size: 13px; line-height: 21px; color: var(--text-2); }
-  .im-sub { margin: var(--s32) 0 0; font-size: 18px; line-height: 28px; color: var(--text-2); max-width: 680px; }
+  .im-side-note { margin: 0; font-family: var(--font-sans); font-size: 18px; line-height: 21px;
+    font-style: italic; font-weight: 700; color: var(--text-2); }
+  .im-sub { margin: var(--s32) 0 0; font-size: 18px; line-height: 28px; color: var(--text-2); max-width: 680px;
+    font-style: italic; }
   .im-dev { margin: var(--s12) 0 0; font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.08em; color: var(--text-3); }
   .im-hint { margin: var(--s48) 0 0; font-family: var(--font-mono); font-size: 12px; line-height: 16px;
     color: var(--text-3); animation: hintBreath 2.8s var(--ease) infinite; }
