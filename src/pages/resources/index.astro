@@ -1,0 +1,272 @@
+---
+import Base from '../../layouts/Base.astro';
+import { getCollection } from 'astro:content';
+
+// 生产环境只展示 published；dev 模式展示全部（草稿带徽章，供本地抽查）
+const all = await getCollection('resources');
+const isDev = import.meta.env.DEV;
+const resources = isDev ? all : all.filter((r) => r.data.status === 'published');
+const sorted = [...resources].sort((a, b) => b.data.date.getTime() - a.data.date.getTime());
+
+const kindCount = new Set(sorted.map((r) => r.data.kind)).size;
+
+const fmt = (d: Date) =>
+  d.toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' });
+---
+
+<Base title="资源 · 收藏" description="资源库：收录好用的 AI 设计 Skill、工具与开源项目">
+  <section class="resources-index">
+    <header class="page-head">
+      <p class="head-kicker">ARCHIVE · 资源归档</p>
+      <h1 class="head-title"><span class="hl">资源</span></h1>
+      <p class="head-meta">
+        <span class="stat-num">{sorted.length}</span> 个 · <span class="stat-num">{kindCount}</span> 种类型
+        {isDev && <span class="dev-hint">（dev 预览：含草稿，发布后仅可见 published）</span>}
+      </p>
+      <p class="head-note">这里收录我自己在用的外部资源——Skill 包、工具、开源项目。不是做过的东西，是帮过忙的东西。</p>
+    </header>
+
+    {sorted.length === 0 ? (
+      <div class="empty">
+        <p>还没有已收录的资源。</p>
+        <p class="empty-sub">对 AI 说一句「帮我把这个资源收录到我的资源库」，或等本地抽查完成后发布。</p>
+      </div>
+    ) : (
+      <div class="resource-list" data-pagefind-body>
+        {sorted.map((r) => (
+          <article class="resource-card">
+            <div class="resource-meta">
+              <time datetime={r.data.date.toISOString()}>{fmt(r.data.date)}</time>
+              <span class="kind-chip">{r.data.kind}</span>
+              <span class="badge-link">外链</span>
+              {r.data.status === 'draft' && isDev && <span class="badge-draft">草稿</span>}
+            </div>
+            <h3><a href={`/resources/${r.data.slug}/`}>{r.data.title}</a></h3>
+            <p class="resource-summary">{r.data.summary}</p>
+            <div class="resource-foot">
+              {r.data.tags.length > 0 && (
+                <div class="tag-row">
+                  {r.data.tags.map((t) => <span class="tag">#{t}</span>)}
+                </div>
+              )}
+              <a class="res-go" href={r.data.link_url} target="_blank" rel="noopener">
+                {r.data.link_label} <span aria-hidden="true">↗</span>
+              </a>
+            </div>
+          </article>
+        ))}
+      </div>
+    )}
+  </section>
+</Base>
+
+<style>
+  .resources-index {
+    padding: var(--sp-5) 0;
+  }
+
+  /* —— 页头：编辑式大标题 + 大数字统计（与笔记/项目列表同一语言）—— */
+  .page-head {
+    margin-bottom: var(--sp-5);
+  }
+  .head-kicker {
+    margin: 0 0 var(--sp-2);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 0.24em;
+    color: var(--accent-ink);
+  }
+  .head-title {
+    margin: 0;
+    font-size: clamp(2.6rem, 7vw, 4.2rem);
+    font-weight: 600;
+    line-height: 1.1;
+  }
+  .hl {
+    position: relative;
+    z-index: 0;
+    display: inline-block;
+    padding: 0 0.1em;
+  }
+  .hl::before {
+    content: '';
+    position: absolute;
+    inset: 14% -0.04em 10%;
+    background: var(--hl);
+    transform: rotate(-1deg);
+    border-radius: 0.14em;
+    z-index: -1;
+  }
+  .head-meta {
+    margin: var(--sp-3) 0 0;
+    font-size: 1rem;
+    color: var(--text-2);
+  }
+  .stat-num {
+    font-family: var(--font-mono);
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--accent-ink);
+    padding: 0 2px;
+  }
+  .head-note {
+    margin: var(--sp-2) 0 0;
+    font-size: 0.92rem;
+    color: var(--text-2);
+  }
+  .dev-hint {
+    margin-left: var(--sp-2);
+    font-size: 0.85rem;
+    color: var(--accent-ink);
+  }
+
+  /* —— 资源卡片：扁平网格（资源尚少，不做分类分组）—— */
+  .resource-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: var(--sp-3);
+  }
+  .resource-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    padding: var(--sp-3) var(--sp-4);
+    overflow: hidden;
+    transition: transform 160ms ease, border-color 160ms ease;
+  }
+  /* hover 彩铅顶条（与项目/笔记卡片同一语言） */
+  .resource-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--hl);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 180ms ease;
+  }
+  .resource-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--accent-ink);
+  }
+  .resource-card:hover::before {
+    transform: scaleX(1);
+  }
+  .resource-meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--sp-2);
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--text-2);
+    margin-bottom: var(--sp-1);
+  }
+  .kind-chip {
+    font-family: var(--font-sans);
+    background: var(--tag-bg);
+    color: var(--text);
+    border-radius: 4px;
+    padding: 0 6px;
+    font-size: 0.75rem;
+  }
+  .badge-link {
+    font-family: var(--font-sans);
+    background: var(--hl);
+    color: var(--text);
+    border-radius: 4px;
+    padding: 0 6px;
+    font-size: 0.72rem;
+  }
+  .badge-draft {
+    font-family: var(--font-sans);
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 0 6px;
+    font-size: 0.72rem;
+  }
+  .resource-card h3 {
+    margin: 0 0 var(--sp-1);
+    font-size: 1.08rem;
+    line-height: 1.4;
+  }
+  .resource-card h3 a {
+    color: var(--text);
+    text-decoration: none;
+  }
+  .resource-card:hover h3 a {
+    color: var(--accent-ink);
+  }
+  .resource-summary {
+    margin: 0 0 var(--sp-2);
+    color: var(--text-2);
+    font-size: 0.92rem;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .resource-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--sp-2);
+    margin-top: auto;
+    padding-top: var(--sp-1);
+  }
+  .tag-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-1);
+  }
+  .tag {
+    font-size: 0.75rem;
+    color: var(--text-2);
+  }
+  .res-go {
+    flex: none;
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--accent-ink);
+    text-decoration: none;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 2px 10px;
+    transition: border-color 150ms ease, background 150ms ease, color 150ms ease;
+  }
+  .res-go:hover {
+    border-color: var(--accent-ink);
+    background: var(--accent-ink);
+    color: var(--surface);
+  }
+
+  .empty {
+    background: var(--surface);
+    border: 1px dashed var(--line);
+    border-radius: var(--radius-lg);
+    padding: var(--sp-5);
+    text-align: center;
+    color: var(--text-2);
+  }
+  .empty-sub {
+    font-size: 0.88rem;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .resource-card:hover {
+      transform: none;
+    }
+    .resource-card::before {
+      transition: none;
+    }
+    .res-go {
+      transition: none;
+    }
+  }
+</style>

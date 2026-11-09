@@ -1,0 +1,205 @@
+---
+import Base from '../../layouts/Base.astro';
+import '../../styles/prose.css';
+import { getCollection, render } from 'astro:content';
+
+export async function getStaticPaths() {
+  const all = await getCollection('resources');
+  // 生产只生成 published；dev 生成全部（草稿本地可预览）
+  const resources = import.meta.env.DEV ? all : all.filter((r) => r.data.status === 'published');
+  return resources.map((r) => ({ params: { slug: r.data.slug }, props: { resource: r } }));
+}
+
+const { resource } = Astro.props;
+const { Content } = await render(resource);
+const { data } = resource;
+
+const fmt = (d: Date) =>
+  d.toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' });
+---
+
+<Base title={`${data.title} · 资源`} description={data.summary}>
+  <article class="resource-detail">
+    <nav class="back-nav"><a href="/resources/">← 返回资源列表</a></nav>
+
+    <header class="resource-head">
+      <div class="resource-meta">
+        <span class="kind-chip">{data.kind}</span>
+        <time datetime={data.date.toISOString()}>{fmt(data.date)}</time>
+        {data.updated && <span class="updated">更新于 {fmt(data.updated)}</span>}
+        {data.status === 'draft' && import.meta.env.DEV && <span class="badge-draft">草稿预览</span>}
+      </div>
+      <h1>{data.title}</h1>
+      <p class="resource-summary">{data.summary}</p>
+
+      <div class="action-row">
+        <a class="action action-primary" href={data.link_url} target="_blank" rel="noopener">
+          {data.link_label} <span aria-hidden="true">↗</span>
+        </a>
+        {data.links.map((l) => (
+          <a class="action" href={l.url} target="_blank" rel="noopener">
+            {l.label} <span aria-hidden="true">↗</span>
+          </a>
+        ))}
+      </div>
+
+      {data.tags.length > 0 && (
+        <div class="tag-row">
+          {data.tags.map((t) => <span class="tag">#{t}</span>)}
+        </div>
+      )}
+    </header>
+
+    <div class="prose" data-pagefind-body>
+      <Content />
+    </div>
+
+    <footer class="resource-foot">
+      {data.source && <p class="source">收录来源：<code>{data.source}</code></p>}
+      <p><a href="/resources/">← 返回资源列表</a></p>
+    </footer>
+  </article>
+</Base>
+
+<style>
+  .resource-detail {
+    /* width:100% 必须显式：.page 是 flex column，子项仅靠 margin:auto 会按
+       fit-content 定宽，被 prose 内长行代码块撑破窄视口 */
+    width: 100%;
+    max-width: 760px;
+    margin: 0 auto;
+    padding: var(--sp-5) 0;
+  }
+  .back-nav {
+    margin-bottom: var(--sp-4);
+    font-size: 0.9rem;
+  }
+  .back-nav a {
+    display: inline-block;
+    color: var(--accent-ink);
+    text-decoration: none;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    border-radius: 999px;
+    padding: 4px 14px;
+    transition: border-color 150ms ease, color 150ms ease, transform 150ms ease;
+  }
+  .back-nav a:hover {
+    border-color: var(--accent-ink);
+    transform: translateX(-2px);
+  }
+  .resource-head {
+    border-bottom: 2px solid var(--line);
+    padding-bottom: var(--sp-4);
+    margin-bottom: var(--sp-4);
+  }
+  .resource-meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--sp-2);
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    color: var(--text-2);
+    margin-bottom: var(--sp-3);
+  }
+  .kind-chip {
+    font-family: var(--font-sans);
+    background: var(--tag-bg);
+    color: var(--text);
+    border-radius: 4px;
+    padding: 0 var(--sp-1);
+    font-size: 0.8rem;
+  }
+  .updated {
+    font-size: 0.78rem;
+  }
+  .badge-draft {
+    font-family: var(--font-sans);
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 0 6px;
+    font-size: 0.75rem;
+  }
+  .resource-head h1 {
+    margin: 0 0 var(--sp-3);
+    font-size: clamp(1.5rem, 4vw, 2rem);
+    line-height: 1.35;
+    letter-spacing: 0.01em;
+  }
+  .resource-summary {
+    margin: 0 0 var(--sp-3);
+    color: var(--text-2);
+    font-size: 1rem;
+  }
+  .action-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-2);
+    margin-bottom: var(--sp-3);
+  }
+  .action {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.9rem;
+    color: var(--accent-ink);
+    text-decoration: none;
+    border: 1px solid var(--accent-ink);
+    border-radius: var(--radius);
+    padding: var(--sp-1) var(--sp-3);
+    transition: background-color 150ms ease, color 150ms ease;
+  }
+  .action:hover {
+    background: var(--accent-ink);
+    color: var(--surface);
+  }
+  .action-primary {
+    background: var(--accent-ink);
+    color: var(--surface);
+  }
+  .action-primary:hover {
+    background: var(--text);
+    border-color: var(--text);
+  }
+  .tag-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-1);
+  }
+  .tag {
+    font-size: 0.78rem;
+    color: var(--text-2);
+    background: var(--surface-2);
+    border-radius: 4px;
+    padding: 1px 8px;
+  }
+  .resource-foot {
+    margin-top: var(--sp-5);
+    padding-top: var(--sp-3);
+    border-top: 1px solid var(--line);
+    color: var(--text-2);
+    font-size: 0.88rem;
+  }
+  .resource-foot a {
+    color: var(--accent-ink);
+  }
+  .source code {
+    font-family: var(--font-mono);
+    font-size: 0.82em;
+    background: var(--surface-2);
+    border-radius: 4px;
+    padding: 0 4px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .back-nav a,
+    .action {
+      transition: none;
+    }
+    .back-nav a:hover {
+      transform: none;
+    }
+  }
+</style>

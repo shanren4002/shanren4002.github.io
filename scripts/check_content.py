@@ -35,6 +35,11 @@ PROJECT_RECOMMENDED_CATEGORIES = {
     "智能体", "RAG 应用", "AI 产品", "后端服务", "工具", "工程实践",
 }
 
+# 资源类型推荐列表（2026-11-09 资源库开区时确立；不在列表内 = 警告不阻断）
+RESOURCE_RECOMMENDED_KINDS = {
+    "Skill 包", "工具站", "开源库", "课程", "文章",
+}
+
 SLUG_RE = re.compile(r"^[a-z0-9-]+$")
 STATUS_VALUES = {"draft", "published", "archived"}
 DEMO_TYPES = {"static", "external", "none"}
@@ -165,6 +170,14 @@ def check_collection(report: Report, collection: str, required: list[str]):
             repo = fm.get("repo_url")
             if repo and not re.match(r"^https?://", str(repo)):
                 report.error(f"{rel}: repo_url 须为完整 URL（http/https 开头）")
+        if collection == "resources":
+            kind = fm.get("kind")
+            if kind and kind not in RESOURCE_RECOMMENDED_KINDS:
+                report.warn(f"{rel}: 新资源类型 '{kind}'（不在推荐列表，请确认是否保留）")
+            for uk in ("link_url", "repo_url"):
+                u = fm.get(uk)
+                if u and not re.match(r"^https?://", str(u)):
+                    report.error(f"{rel}: {uk} 须为完整 URL（http/https 开头）")
 
 
 def check_gallery(report: Report):
@@ -244,6 +257,7 @@ def main() -> int:
     report = Report()
     check_collection(report, "notes", ["title", "slug", "date", "status", "summary", "category"])
     check_collection(report, "projects", ["title", "slug", "date", "status", "summary", "category"])
+    check_collection(report, "resources", ["title", "slug", "date", "status", "summary", "kind", "link_url"])
     check_gallery(report)
     check_env_files(report)
     check_secrets(report)

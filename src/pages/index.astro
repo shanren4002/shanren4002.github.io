@@ -20,13 +20,18 @@ const galleryItems = galleryEntry[0]?.data.items ?? [];
 const visibleGallery = isDev ? galleryItems : galleryItems.filter((i) => i.status === 'published');
 const galleryCount = visibleGallery.length;
 
+const allResources = await getCollection('resources');
+const visibleResources = isDev ? allResources : allResources.filter((r) => r.data.status === 'published');
+const resourceCount = visibleResources.length;
+const resourceKindCount = new Set(visibleResources.map((r) => r.data.kind)).size;
+
 // 首屏/入口大图：按 slug 精选已发布画廊作品；若作品被下架则跳过（不空窗、不破图）
 const pickBySlug = (...slugs: string[]) =>
   slugs
     .map((s) => visibleGallery.find((i) => i.slug === s))
     .filter((it): it is NonNullable<typeof it> => Boolean(it));
 const heroImages = pickBySlug('20261031-sakura-torii-01', '20261031-starry-train-01', '20261031-moon-gate-dusk-01');
-const entryImages = pickBySlug('20261031-wall-e-stars-01', '20261031-harbor-studio-01', '20261031-dusk-portrait-01');
+const entryImages = pickBySlug('20261031-wall-e-stars-01', '20261031-harbor-studio-01', '20261031-dusk-portrait-01', '20261031-retro-bedroom-01');
 const imgUrl = (it: { src: string }) => `/images/gallery/${it.src}`;
 ---
 
@@ -113,6 +118,15 @@ const imgUrl = (it: { src: string }) => `/images/gallery/${it.src}`;
             <span class="entry-idx">03</span>
             <span class="entry-name">艺术画廊</span>
             <span class="entry-meta">{galleryCount} 张 · 艺术收藏 · 持续归档中</span>
+          </span>
+        </a>
+        <a class="entry-card" href="/resources/">
+          {entryImages[3] && <img src={imgUrl(entryImages[3])} alt="" width="1920" height="1080" loading="lazy" decoding="async" />}
+          <span class="entry-arrow" aria-hidden="true">→</span>
+          <span class="entry-body">
+            <span class="entry-idx">04</span>
+            <span class="entry-name">资源库</span>
+            <span class="entry-meta">{resourceCount} 个 · {resourceKindCount} 种类型 · 持续收录中</span>
           </span>
         </a>
       </div>
@@ -401,7 +415,8 @@ const imgUrl = (it: { src: string }) => `/images/gallery/${it.src}`;
   }
   .entry-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    /* 2026-11-09：资源库开区后为 4 卡 2×2（3 列会让第 4 张落单）；≤600px 仍单列 */
+    grid-template-columns: repeat(2, 1fr);
     gap: 22px;
   }
   .entry-card {

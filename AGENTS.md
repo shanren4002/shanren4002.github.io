@@ -7,7 +7,7 @@
 ## 1. 项目速览
 
 - **形态**：静态作品集站（Astro 5 构建 → GitHub Pages 托管，Pagefind 站内搜索）
-- **内容**：`src/content/notes`（笔记）、`src/content/projects`（项目档案）、`src/content/gallery.json`（艺术画廊）
+- **内容**：`src/content/notes`（笔记）、`src/content/projects`（项目档案）、`src/content/gallery.json`（艺术画廊）、`src/content/resources`（资源库：外部资源收录，2026-11-09 开区）
 - **主题**：彩铅笔感亮主题（`src/styles/tokens.css`，全站唯一主题；用户 2026-10-30 决策移除暗主题）
 - **两条上传通道**：① 对 AI 说话（主通道，commit 前缀 `content(notes|projects|gallery):`）② 网页后台自助上传（辅通道，Worker 生成 commit，前缀 `content(backend):`）——git log 即两条通道的事实源
 - **部署**：push 到 `main` 触发 `.github/workflows/deploy.yml`（双门禁：内容预检 + 构建校验）
@@ -19,6 +19,7 @@
 | 笔记 | `src/content/notes/<slug>.md` |
 | 项目档案 | `src/content/projects/<slug>.md` |
 | 画廊条目 | 追加 `src/content/gallery.json` + 图片落 `public/images/gallery/` |
+| 资源条目 | `src/content/resources/<slug>.md`（仅主通道；Worker 后台暂不支持，见 §1） |
 | 笔记/项目配图 | `public/images/notes/<slug>/`、`public/images/projects/<slug>/` |
 | demo 静态副本 | `public/demos/<slug>/` |
 
@@ -51,6 +52,8 @@ source: 笔记/FastAPI/xxx.md   # 选填，溯源原文路径
 
 projects 追加字段：`repo_url`（选填）、`demo_type: static|external|none`、`demo_url`（选填）、`tech_stack: []`、`featured: false`。
 
+resources 追加字段：`kind`（资源类型，推荐：Skill 包 / 工具站 / 开源库 / 课程 / 文章）、`link_url`（必填，主链接外链）、`link_label`（主链接按钮文案，默认「前往资源」）、`links`（选填，附加链接数组 `[{label, url}]`）。resources 无 category 字段，类型即 kind。
+
 ## 5. 自动归类规则
 
 - 用户指定分类 → 从命
@@ -63,6 +66,7 @@ projects 追加字段：`repo_url`（选填）、`demo_type: static|external|non
 content(notes): 添加 <title>
 content(projects): 更新 <slug>
 content(gallery): 添加 N 张图片
+content(resources): 收录 <title>
 fix(content): 修正 <slug> 的分类
 ```
 
