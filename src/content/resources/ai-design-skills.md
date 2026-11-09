@@ -70,6 +70,8 @@ MIT 协议，可自由 fork 改造——设计价值观集中在一节里，就�
 - **关键参数**（技能底部「设计价值观」一节的原值）：字体 Geist + Geist Mono（等宽仅用于代码与数据）、暗色色板 `#000000 / #181818 / #1F1F1F / #272727 / #313131 / #131209`、间距十二档 2~96px、圆角走 Tailwind 阶（嵌套半径 = 外半径 − 间隙）、动效基础曲线 `cubic-bezier(0.22, 1, 0.36, 1)`、hero 标题白到灰渐变且上限 680px
 - **数据来源**：页面上每个数字都是真的——15,045 stars / 1,144 forks 取自 GitHub API（2026-11-09 抓取）。仓库没有任何用户证言，按技能「禁止编造」的规则，证言节整节删除，没有用占位符糊弄
 
-**技能输出的策略层**（它要求先定战略再写代码，这部分原样保留）：布局选 A（经典 hero 加分区，产品一个 hero 就能讲清）；SEO 结论 noindex（案例副本，canonical 在仓库和 skills.sh，不跟原版抢搜索）；标语揭示区「Your AI already writes the code. Now hand it the design rules.」逐词点亮。
+**技能输出的策略层**（它要求先定战略再写代码，这部分原样保留）：布局选 A（经典 hero 加分区，产品一个 hero 就能讲清）；SEO 结论 noindex（案例副本，canonical 在仓库和 skills.sh，不跟原版抢搜索）；标语揭示区逐字点亮。
+
+**中文化**（站长要求，生成后执行的本地化）：全页说明文案转中文，命令（`npx skills add ...`）、技能名（landing-page-design / figma-designer / redesign-skill）、品牌（GitHub / Figma / Claude Code / Cursor / Codex / Windsurf / Cline / SlopScan）、许可（MIT）与终端输出等「本来就要用英文的」保留原文；标语逐词点亮的切分逻辑同步改为「中文逐字、西文按词」。
 
 **执行中的判断**（偏离与原因，一并记录）：隐私条款 / 独立 404 / 表单验证未做——单页案例副本，法务链接用项目真实的 MIT 许可代替；无证言节；终端窗口里的输出是按 README 原句排的示意 UI。整页 22 项自动验收全过（桌面 + 390px + reduced-motion + 交互状态），验收脚本留档在工作区 `.workbuddy/qa/demo-check.mjs`。
