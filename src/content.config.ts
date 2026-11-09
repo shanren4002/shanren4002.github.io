@@ -43,9 +43,9 @@ const resources = defineCollection({
     kind: z.string(),                            // 资源类型：Skill 包 / 工具站 / 开源库 …
     link_url: z.string().url(),                  // 主链接（必填，外链）
     link_label: z.string().default('前往资源'),   // 主链接按钮文案
-    links: z.array(z.object({                    // 附加链接（文档 / 主页 / 演示等）
+    links: z.array(z.object({                    // 附加链接（文档 / 主页 / 站内案例 Demo 等）
       label: z.string(),
-      url: z.string().url(),
+      url: z.union([z.string().url(), z.string().startsWith('/')]), // 外链或站内路径
     })).default([]),
   }),
 });

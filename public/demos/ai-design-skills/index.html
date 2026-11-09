@@ -1,0 +1,851 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AI Design Skills — A design system for every AI coding tool</title>
+<meta name="description" content="A growing collection of design skills for AI coding tools. landing-page-design builds pages from scratch, figma-designer builds real structure in Figma. One command to install, MIT licensed." />
+<meta name="robots" content="noindex, nofollow" />
+<!-- 案例副本：canonical 在仓库与 skills.sh，本页不参与搜索（A7 结论） -->
+<link rel="canonical" href="https://github.com/elayadesign/ai-design-skills" />
+<meta property="og:type" content="website" />
+<meta property="og:title" content="AI Design Skills — A design system for every AI coding tool" />
+<meta property="og:description" content="Two skills today, more on the way. One command to install, MIT licensed." />
+<meta property="og:image" content="./assets/og.png" />
+<meta property="og:url" content="https://github.com/elayadesign/ai-design-skills" />
+<meta name="twitter:card" content="summary_large_image" />
+<link rel="icon" type="image/svg+xml" href="./assets/favicon.svg" />
+<link rel="stylesheet" href="./assets/fonts.css" />
+<style>
+  /* ============ Tokens（Part B：所有取值只从下表出） ============ */
+  :root {
+    /* 暗色背景色板（B4） */
+    --bg: #000000;
+    --surface: #181818;
+    --surface-2: #1F1F1F;
+    --warm: #131209;
+    --line: #272727;
+    --line-strong: #313131;
+    --text: #FFFFFF;
+    --text-2: #9B9B9B;
+
+    /* 字体（B1）：Geist + Geist Mono（仅代码/数据用等宽） */
+    --font-sans: 'Geist', ui-sans-serif, system-ui, sans-serif;
+    --font-mono: 'Geist Mono', ui-monospace, monospace;
+
+    /* 间距（B2） */
+    --sp-25: 2px;  --sp-50: 4px;  --sp-75: 8px;  --sp-100: 12px;
+    --sp-200: 16px; --sp-300: 24px; --sp-400: 32px; --sp-500: 40px;
+    --sp-600: 48px; --sp-700: 64px; --sp-800: 80px; --sp-900: 96px;
+
+    /* 圆角（B3，Tailwind 阶） */
+    --r-sm: 4px; --r-md: 6px; --r-lg: 8px; --r-xl: 12px; --r-2xl: 16px; --r-3xl: 24px;
+
+    /* 动效（B7） */
+    --ease: cubic-bezier(0.22, 1, 0.36, 1);
+    --dur-layout: 500ms;
+    --dur-hover: 300ms;
+    --dur-reveal: 700ms;
+
+    --container: 1080px;
+    --measure: 680px; /* hero 标题/副题上限（B5） */
+  }
+
+  /* ============ 基础 ============ */
+  *, *::before, *::after { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-sans);
+    font-size: 16px;
+    line-height: 24px;
+    -webkit-font-smoothing: antialiased;
+  }
+  img, svg { display: block; max-width: 100%; }
+  a { color: var(--text); }
+  ::selection { background: var(--text); color: var(--bg); }
+
+  .skip-link {
+    position: absolute; left: var(--sp-200); top: var(--sp-100);
+    z-index: 200; padding: var(--sp-75) var(--sp-100);
+    background: var(--text); color: var(--bg); border-radius: var(--r-lg);
+    font-size: 14px; line-height: 20px; font-weight: 600; text-decoration: none;
+    transform: translateY(-200%);
+    transition: transform var(--dur-hover) var(--ease);
+  }
+  .skip-link:focus-visible { transform: none; }
+
+  :focus-visible { outline: 2px solid var(--text); outline-offset: 2px; border-radius: var(--r-sm); }
+
+  /* ============ 文字样式（B1 命名样式，kebab 类名） ============ */
+  .heading-1 { font-size: 60px; line-height: 60px; font-weight: 600; letter-spacing: -0.02em; text-wrap: balance; }
+  .heading-2 { font-size: 48px; line-height: 48px; font-weight: 600; letter-spacing: -0.02em; text-wrap: balance; }
+  .heading-3 { font-size: 36px; line-height: 40px; font-weight: 600; letter-spacing: -0.01em; text-wrap: balance; }
+  .heading-4 { font-size: 30px; line-height: 36px; font-weight: 600; text-wrap: balance; }
+  .heading-5 { font-size: 24px; line-height: 32px; font-weight: 600; text-wrap: balance; }
+  .heading-6 { font-size: 20px; line-height: 28px; font-weight: 600; text-wrap: balance; }
+  .title-1 { font-size: 20px; line-height: 28px; font-weight: 500; }
+  .title-2 { font-size: 18px; line-height: 28px; font-weight: 500; }
+  .title-3 { font-size: 16px; line-height: 24px; font-weight: 500; }
+  .title-4 { font-size: 14px; line-height: 20px; font-weight: 500; }
+  .body-1 { font-size: 16px; line-height: 24px; font-weight: 600; }
+  .body-2 { font-size: 16px; line-height: 24px; font-weight: 500; }
+  .body-3 { font-size: 16px; line-height: 24px; font-weight: 400; text-wrap: pretty; }
+  .body-5 { font-size: 14px; line-height: 20px; font-weight: 500; text-wrap: pretty; }
+  .body-6 { font-size: 14px; line-height: 20px; font-weight: 400; text-wrap: pretty; }
+  .button-md { font-size: 16px; line-height: 24px; font-weight: 600; }
+  .button-sm { font-size: 14px; line-height: 20px; font-weight: 600; }
+  .caption-2 { font-size: 14px; line-height: 20px; font-weight: 400; }
+  .caption-3 { font-size: 12px; line-height: 16px; font-weight: 600; }
+  .caption-4 { font-size: 12px; line-height: 16px; font-weight: 500; }
+  .caption-5 { font-size: 12px; line-height: 16px; font-weight: 400; }
+  .mono { font-family: var(--font-mono); }
+
+  .muted { color: var(--text-2); }
+
+  /* ============ 布局 ============ */
+  .container { width: 100%; max-width: var(--container); margin: 0 auto; padding-left: var(--sp-300); padding-right: var(--sp-300); }
+  .section { padding-top: var(--sp-900); padding-bottom: var(--sp-900); }
+  .section-head { max-width: var(--measure); margin-bottom: var(--sp-600); }
+  .section-head .kicker { margin: 0 0 var(--sp-100); color: var(--text-2); }
+  .section-head h2 { margin: 0 0 var(--sp-200); }
+  .section-head p { margin: 0; }
+
+  /* ============ 案例横幅（本站 meta UI，非落地页本体） ============ */
+  .case-banner {
+    background: var(--warm);
+    border-bottom: 1px solid var(--line);
+    padding: var(--sp-75) var(--sp-300);
+    text-align: center;
+    color: var(--text-2);
+    font-size: 12px; line-height: 16px;
+  }
+  .case-banner a { color: var(--text); text-decoration: underline; text-underline-offset: 3px; }
+  .case-banner a:hover { text-decoration-thickness: 2px; }
+
+  /* ============ 浮动导航（B7） ============ */
+  .nav {
+    position: fixed; top: var(--sp-200); left: 50%; transform: translateX(-50%);
+    z-index: 100;
+    display: flex; align-items: center; gap: var(--sp-100);
+    padding: var(--sp-75) var(--sp-75) var(--sp-75) var(--sp-200);
+    background: rgba(24, 24, 24, 0.72);
+    -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    max-width: calc(100vw - 2 * var(--sp-200));
+  }
+  .nav .wordmark { font-family: var(--font-mono); font-size: 14px; font-weight: 500; text-decoration: none; white-space: nowrap; }
+  .nav .wordmark:hover { color: var(--text-2); }
+  .nav-links { display: flex; align-items: center; gap: var(--sp-25); }
+  .nav-links a {
+    display: inline-block; padding: var(--sp-50) var(--sp-100);
+    border-radius: 999px; color: var(--text-2); text-decoration: none;
+    font-size: 14px; line-height: 20px; font-weight: 500;
+    transition: color var(--dur-hover) var(--ease), background-color var(--dur-hover) var(--ease);
+  }
+  .nav-links a:hover { color: var(--text); background: var(--surface-2); }
+  .nav-links a[aria-current='true'] { color: var(--text); background: var(--surface-2); }
+  .nav-cta {
+    display: inline-flex; align-items: center; gap: var(--sp-50);
+    padding: var(--sp-50) var(--sp-100); border-radius: 999px;
+    background: var(--text); color: var(--bg); text-decoration: none;
+    font-size: 14px; line-height: 20px; font-weight: 600;
+    transition: transform var(--dur-hover) var(--ease);
+  }
+  .nav-cta:hover { transform: translateY(-1px); }
+  .nav-cta:active { transform: scale(0.98); }
+  .nav-toggle {
+    display: none; align-items: center; justify-content: center;
+    width: 32px; height: 32px; padding: 0;
+    background: transparent; border: 1px solid var(--line-strong); border-radius: 999px;
+    color: var(--text); cursor: pointer;
+  }
+  .nav-toggle .bars { position: relative; width: 14px; height: 10px; }
+  .nav-toggle .bars span {
+    position: absolute; left: 0; width: 100%; height: 1.5px; background: currentColor;
+    border-radius: 2px;
+    transition: transform var(--dur-layout) var(--ease), top var(--dur-layout) var(--ease);
+  }
+  .nav-toggle .bars span:first-child { top: 0; }
+  .nav-toggle .bars span:last-child { top: calc(100% - 1.5px); }
+  body.menu-open .nav-toggle .bars span:first-child { top: calc(50% - 0.75px); transform: rotate(45deg); }
+  body.menu-open .nav-toggle .bars span:last-child { top: calc(50% - 0.75px); transform: rotate(-45deg); }
+
+  /* 移动端全高面板（B7） */
+  .mobile-menu {
+    position: fixed; inset: 0; z-index: 90;
+    display: flex; flex-direction: column; justify-content: center; gap: var(--sp-75);
+    padding: var(--sp-800) var(--sp-300) var(--sp-500);
+    background: rgba(24, 24, 24, 0.96);
+    -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px);
+    opacity: 0; visibility: hidden;
+    transition: opacity var(--dur-layout) var(--ease), visibility var(--dur-layout) var(--ease);
+  }
+  body.menu-open .mobile-menu { opacity: 1; visibility: visible; }
+  .mobile-menu a {
+    color: var(--text); text-decoration: none;
+    font-size: 30px; line-height: 36px; font-weight: 600;
+    opacity: 0; transform: translateY(var(--sp-300));
+    transition: opacity var(--dur-layout) var(--ease), transform var(--dur-layout) var(--ease);
+  }
+  body.menu-open .mobile-menu a { opacity: 1; transform: none; }
+  body.menu-open .mobile-menu a:nth-child(1) { transition-delay: 0ms; }
+  body.menu-open .mobile-menu a:nth-child(2) { transition-delay: 60ms; }
+  body.menu-open .mobile-menu a:nth-child(3) { transition-delay: 120ms; }
+  body.menu-open .mobile-menu a:nth-child(4) { transition-delay: 180ms; }
+  body.menu-open .mobile-menu a:nth-child(5) { transition-delay: 240ms; }
+  .mobile-menu .mm-note { margin-top: var(--sp-400); color: var(--text-2); font-size: 14px; line-height: 20px; }
+
+  /* ============ Hero ============ */
+  .hero { padding-top: calc(var(--sp-900) + var(--sp-800)); padding-bottom: var(--sp-900); }
+  .hero-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-600); align-items: center; }
+  .hero-copy .kicker { margin: 0 0 var(--sp-200); color: var(--text-2); }
+  .hero-copy h1 {
+    margin: 0 0 var(--sp-300);
+    max-width: var(--measure);
+    background: linear-gradient(90deg, #FFFFFF, #9B9B9B); /* B5：唯一允许的渐变，仅文字 */
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent; color: transparent;
+  }
+  .hero-copy .sub { margin: 0 0 var(--sp-400); max-width: var(--measure); color: var(--text-2); }
+  .hero-copy .sub code { font-family: var(--font-mono); font-size: 14px; color: var(--text); background: var(--surface-2); border-radius: var(--r-sm); padding: 0 var(--sp-25); }
+  .cta-row { display: flex; flex-wrap: wrap; gap: var(--sp-100); align-items: center; }
+  .proof-line { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-100); margin: var(--sp-400) 0 0; color: var(--text-2); }
+  .proof-line .dot { width: 4px; height: 4px; border-radius: 999px; background: var(--line-strong); }
+
+  /* 按钮（B2：主按钮 8px 纵 / 12px 横） */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: var(--sp-50);
+    padding: var(--sp-75) var(--sp-100);
+    border-radius: var(--r-lg); border: 1px solid transparent;
+    text-decoration: none; cursor: pointer; font-family: var(--font-sans);
+    transition: background-color var(--dur-hover) var(--ease), color var(--dur-hover) var(--ease),
+                border-color var(--dur-hover) var(--ease), transform var(--dur-hover) var(--ease);
+  }
+  .btn:active { transform: scale(0.98); }
+  .btn-primary { background: var(--text); color: var(--bg); }
+  .btn-primary:hover { background: #E5E5E5; transform: translateY(-1px); }
+  .btn-primary:active { transform: scale(0.98); }
+  .btn-ghost { background: transparent; color: var(--text); border-color: var(--line-strong); }
+  .btn-ghost:hover { border-color: var(--text); background: var(--surface); transform: translateY(-1px); }
+  .btn-ghost:active { transform: scale(0.98); }
+  .btn .arrow { transition: transform var(--dur-layout) var(--ease); }
+  .btn:hover .arrow { transform: translateX(2px); }
+
+  /* 终端视觉（hero 产品截图替代：真实命令 + 真实技能名） */
+  .terminal {
+    background: var(--warm);
+    border: 1px solid var(--line);
+    border-radius: var(--r-2xl);
+    overflow: hidden;
+    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.4);
+  }
+  .terminal-bar { display: flex; align-items: center; gap: var(--sp-50); padding: var(--sp-100) var(--sp-200); border-bottom: 1px solid var(--line); }
+  .terminal-bar .dots { display: flex; gap: var(--sp-50); }
+  .terminal-bar .dots i { width: 8px; height: 8px; border-radius: 999px; background: var(--line-strong); }
+  .terminal-bar .name { color: var(--text-2); font-family: var(--font-mono); font-size: 12px; }
+  .terminal-body { padding: var(--sp-300) var(--sp-200); font-family: var(--font-mono); font-size: 14px; line-height: 24px; }
+  .terminal-body .cmd { display: flex; align-items: flex-start; gap: var(--sp-100); }
+  .terminal-body .cmd .prompt { color: var(--text-2); user-select: none; }
+  .terminal-body .cmd .cmd-text { color: var(--text); word-break: break-all; }
+  .terminal-body .out { margin-top: var(--sp-200); display: grid; gap: var(--sp-100); }
+  .terminal-body .out .row { display: flex; gap: var(--sp-100); align-items: baseline; }
+  .terminal-body .out .check { color: var(--text); }
+  .terminal-body .out .skill { color: var(--text); white-space: nowrap; }
+  .terminal-body .out .desc { color: var(--text-2); }
+  .cursor { display: inline-block; width: 8px; height: 16px; background: var(--text); vertical-align: -2px; animation: blink 1.2s steps(2, start) infinite; }
+  @keyframes blink { to { visibility: hidden; } }
+
+  .copy-row { display: flex; align-items: center; gap: var(--sp-100); margin-top: var(--sp-300); padding-top: var(--sp-200); border-top: 1px solid var(--line); }
+  .copy-row .label { color: var(--text-2); font-size: 12px; line-height: 16px; }
+  .copy-btn {
+    margin-left: auto; display: inline-flex; align-items: center; gap: var(--sp-50);
+    padding: var(--sp-50) var(--sp-100); border-radius: var(--r-lg);
+    background: var(--surface-2); border: 1px solid var(--line-strong); color: var(--text);
+    font-family: var(--font-sans); font-size: 12px; line-height: 16px; font-weight: 600; cursor: pointer;
+    transition: background-color var(--dur-hover) var(--ease), border-color var(--dur-hover) var(--ease);
+  }
+  .copy-btn:hover { border-color: var(--text); }
+  .copy-btn:active { transform: scale(0.98); }
+  .copy-btn.copied { background: var(--text); color: var(--bg); border-color: var(--text); }
+
+  /* ============ 滚动显现（B7） ============ */
+  .reveal { opacity: 0; transform: translateY(var(--sp-400)); transition: opacity var(--dur-reveal) var(--ease), transform var(--dur-reveal) var(--ease); }
+  .reveal.in { opacity: 1; transform: none; }
+
+  /* ============ 标语揭示（B11，必做） ============ */
+  .tagline { background: var(--warm); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+  .tagline .container { padding-top: var(--sp-900); padding-bottom: var(--sp-900); }
+  .tagline p {
+    margin: 0; max-width: var(--measure);
+    font-size: 48px; line-height: 48px; font-weight: 600; letter-spacing: -0.02em;
+    text-wrap: balance;
+  }
+  .tagline .tw { color: rgba(255, 255, 255, 0.3); transition: color var(--dur-layout) var(--ease); }
+  .tagline .tw.on { color: var(--text); }
+  .tagline .tagline-note { margin-top: var(--sp-400); color: var(--text-2); }
+
+  /* ============ 问题 → 方案 ============ */
+  .problem .lead { max-width: var(--measure); }
+  .problem .lead h2 { margin: 0 0 var(--sp-300); }
+  .problem .lead p { margin: 0 0 var(--sp-200); color: var(--text-2); }
+  .problem .lead p:last-child { margin-bottom: 0; color: var(--text); }
+
+  /* ============  benefits 卡 ============ */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-200); }
+  .card {
+    background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-2xl);
+    padding: var(--sp-400);
+    transition: border-color var(--dur-hover) var(--ease), transform var(--dur-hover) var(--ease);
+  }
+  .card:hover { border-color: var(--line-strong); transform: translateY(-2px); }
+  .card .icon {
+    display: flex; align-items: center; justify-content: center;
+    width: 40px; height: 40px; margin-bottom: var(--sp-300);
+    background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r-lg);
+    color: var(--text);
+  }
+  .card h3 { margin: 0 0 var(--sp-100); }
+  .card p { margin: 0; color: var(--text-2); }
+
+  /* ============ 三步 ============ */
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--sp-200); counter-reset: step; }
+  .step { position: relative; padding-top: var(--sp-300); border-top: 1px solid var(--line); }
+  .step .no { font-family: var(--font-mono); font-size: 12px; color: var(--text-2); }
+  .step h3 { margin: var(--sp-100) 0 var(--sp-100); }
+  .step p { margin: 0; color: var(--text-2); }
+  .step code { font-family: var(--font-mono); font-size: 13px; color: var(--text); background: var(--surface-2); border-radius: var(--r-sm); padding: 0 var(--sp-25); }
+
+  /* ============ 真实数据 proof ============ */
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--sp-200); }
+  .stat { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-2xl); padding: var(--sp-300); }
+  .stat .num { font-family: var(--font-mono); font-size: 30px; line-height: 36px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .stat .cap { margin-top: var(--sp-50); color: var(--text-2); }
+  .proof-note { margin-top: var(--sp-200); color: var(--text-2); }
+
+  /* ============ 生态 ============ */
+  .eco-card { display: flex; flex-direction: column; gap: var(--sp-100); text-decoration: none; }
+  .eco-card .top { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-100); }
+  .eco-card .go { color: var(--text-2); transition: transform var(--dur-layout) var(--ease), color var(--dur-hover) var(--ease); }
+  .eco-card:hover .go { transform: translate(2px, -2px); color: var(--text); }
+  .eco-card p { margin: 0; color: var(--text-2); }
+
+  /* ============ FAQ ============ */
+  .faq-list { display: grid; gap: var(--sp-100); max-width: var(--measure); }
+  .faq-item { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); }
+  .faq-item summary {
+    display: flex; align-items: center; justify-content: space-between; gap: var(--sp-200);
+    padding: var(--sp-200) var(--sp-300); cursor: pointer; list-style: none;
+    font-size: 16px; line-height: 24px; font-weight: 500;
+    transition: color var(--dur-hover) var(--ease);
+  }
+  .faq-item summary::-webkit-details-marker { display: none; }
+  .faq-item summary:hover { color: var(--text-2); }
+  .faq-item[open] summary { color: var(--text); }
+  .faq-item .plus { position: relative; flex: none; width: 14px; height: 14px; }
+  .faq-item .plus::before, .faq-item .plus::after {
+    content: ''; position: absolute; top: calc(50% - 0.75px); left: 0; width: 100%; height: 1.5px;
+    background: var(--text-2); border-radius: 2px;
+    transition: transform var(--dur-layout) var(--ease), background-color var(--dur-hover) var(--ease);
+  }
+  .faq-item .plus::after { transform: rotate(90deg); }
+  .faq-item[open] .plus::after { transform: rotate(0deg); }
+  .faq-item[open] .plus::before, .faq-item[open] .plus::after { background: var(--text); }
+  .faq-item .answer { padding: 0 var(--sp-300) var(--sp-200); color: var(--text-2); }
+  .faq-item .answer p { margin: 0; }
+  .faq-item .answer code { font-family: var(--font-mono); font-size: 13px; color: var(--text); background: var(--surface-2); border-radius: var(--r-sm); padding: 0 var(--sp-25); }
+
+  /* ============ 最终 CTA ============ */
+  .final { text-align: left; }
+  .final .container { display: grid; gap: var(--sp-400); justify-items: start; }
+  .final h2 { margin: 0; max-width: var(--measure); }
+  .final .risk { display: flex; flex-wrap: wrap; gap: var(--sp-100); margin: 0; padding: 0; list-style: none; color: var(--text-2); }
+  .final .risk li { display: inline-flex; align-items: center; gap: var(--sp-50); }
+  .final .cmd-chip {
+    display: inline-flex; align-items: center; gap: var(--sp-100);
+    background: var(--warm); border: 1px solid var(--line); border-radius: var(--r-lg);
+    padding: var(--sp-75) var(--sp-100);
+    font-family: var(--font-mono); font-size: 14px; line-height: 20px; color: var(--text);
+    word-break: break-all;
+  }
+
+  /* ============ 页脚 ============ */
+  .footer { border-top: 1px solid var(--line); padding-top: var(--sp-600); padding-bottom: var(--sp-600); }
+  .footer-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-500); }
+  .footer .f-note { margin: var(--sp-200) 0 0; color: var(--text-2); max-width: 420px; }
+  .footer .f-links { display: grid; gap: var(--sp-100); justify-content: start; }
+  .footer .f-links a { display: inline-flex; align-items: center; gap: var(--sp-50); color: var(--text-2); text-decoration: none; font-size: 14px; line-height: 20px; transition: color var(--dur-hover) var(--ease); }
+  .footer .f-links a:hover { color: var(--text); }
+  .footer .f-bottom { display: flex; flex-wrap: wrap; gap: var(--sp-200); justify-content: space-between; margin-top: var(--sp-600); padding-top: var(--sp-300); border-top: 1px solid var(--line); color: var(--text-2); }
+  .footer .f-bottom a { color: var(--text-2); text-decoration: underline; text-underline-offset: 3px; }
+  .footer .f-bottom a:hover { color: var(--text); }
+
+  /* ============ 响应式 ============ */
+  @media (max-width: 960px) {
+    .hero-grid { grid-template-columns: 1fr; gap: var(--sp-500); }
+    .steps { grid-template-columns: 1fr; gap: var(--sp-300); }
+    .stats { grid-template-columns: 1fr 1fr; }
+    .footer-grid { grid-template-columns: 1fr; gap: var(--sp-400); }
+  }
+  @media (max-width: 720px) {
+    .nav-links, .nav-cta { display: none; }
+    .nav-toggle { display: inline-flex; }
+    .nav { padding-right: var(--sp-75); }
+    .grid-2 { grid-template-columns: 1fr; }
+    .heading-1 { font-size: 48px; line-height: 48px; }
+    .tagline p { font-size: 36px; line-height: 40px; }
+    .section { padding-top: var(--sp-700); padding-bottom: var(--sp-700); }
+    .hero { padding-top: calc(var(--sp-800) + var(--sp-700)); }
+  }
+  @media (max-width: 420px) {
+    .container { padding-left: var(--sp-200); padding-right: var(--sp-200); }
+    .heading-1 { font-size: 36px; line-height: 40px; }
+    .tagline p { font-size: 30px; line-height: 36px; }
+    .stats { grid-template-columns: 1fr; }
+    .card { padding: var(--sp-300); }
+    .terminal-body { font-size: 12.5px; }
+  }
+
+  /* ============ reduced-motion（B7/B11） ============ */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+    .reveal { opacity: 1; transform: none; }
+    .tagline .tw { color: var(--text); }
+    .cursor { animation: none; }
+    .btn:hover, .card:hover, .eco-card:hover .go, .nav-cta:hover { transform: none; }
+  }
+</style>
+</head>
+<body>
+
+<a class="skip-link" href="#main">Skip to content</a>
+
+<!-- 案例横幅：本站 meta UI（说明来路，返回资源库） -->
+<div class="case-banner">
+  Case study demo · This page was generated with the <a href="https://github.com/elayadesign/ai-design-skills">landing-page-design</a> skill · <a href="/resources/">Back to the resource library</a>
+</div>
+
+<!-- 浮动导航（B7：离顶悬浮、居中、内容自适应、半透明模糊） -->
+<nav class="nav" aria-label="Primary">
+  <a class="wordmark" href="#main">ai-design-skills</a>
+  <div class="nav-links">
+    <a href="#skills" data-spy="skills">Skills</a>
+    <a href="#how" data-spy="how">How it works</a>
+    <a href="#faq" data-spy="faq">FAQ</a>
+  </div>
+  <a class="nav-cta" href="https://github.com/elayadesign/ai-design-skills" target="_blank" rel="noopener">GitHub ↗</a>
+  <button class="nav-toggle" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="mobile-menu">
+    <span class="bars" aria-hidden="true"><span></span><span></span></span>
+  </button>
+</nav>
+
+<!-- 移动端全高面板（B7：链接逐条 60ms 上移入场，总长封顶 400ms） -->
+<div class="mobile-menu" id="mobile-menu">
+  <a href="#skills">Skills</a>
+  <a href="#how">How it works</a>
+  <a href="#proof">Proof</a>
+  <a href="#faq">FAQ</a>
+  <a href="https://github.com/elayadesign/ai-design-skills" target="_blank" rel="noopener">GitHub ↗</a>
+  <p class="mm-note">Case study demo · built with the landing-page-design skill</p>
+</div>
+
+<main id="main">
+
+  <!-- ① Hero（A2 折叠线上五要素） -->
+  <section class="hero">
+    <div class="container hero-grid">
+      <div class="hero-copy">
+        <p class="kicker caption-3">OPEN SOURCE · MIT LICENSED</p>
+        <h1 class="heading-1">A design system for every AI coding tool</h1>
+        <p class="sub body-5">Two skills today, more on the way. <code>landing-page-design</code> builds pages from scratch, <code>figma-designer</code> builds real structure in Figma. One command to install.</p>
+        <div class="cta-row">
+          <a class="btn btn-primary button-md" href="https://github.com/elayadesign/ai-design-skills" target="_blank" rel="noopener">Get the skills <span class="arrow" aria-hidden="true">→</span></a>
+          <a class="btn btn-ghost button-md" href="https://skills.sh/elayadesign/ai-design-skills" target="_blank" rel="noopener">Browse on skills.sh ↗</a>
+        </div>
+        <p class="proof-line caption-4">
+          <span class="mono">15,045</span> stars
+          <span class="dot" aria-hidden="true"></span>
+          <span class="mono">1,144</span> forks
+          <span class="dot" aria-hidden="true"></span>
+          updated Nov 1, 2026
+        </p>
+      </div>
+
+      <!-- Hero 视觉：终端（真实命令 + README 原句） -->
+      <div class="terminal" role="img" aria-label="Terminal showing the npx install command listing the two skills">
+        <div class="terminal-bar">
+          <span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>
+          <span class="name">zsh</span>
+        </div>
+        <div class="terminal-body">
+          <div class="cmd">
+            <span class="prompt" aria-hidden="true">$</span>
+            <span class="cmd-text">npx skills add elayadesign/ai-design-skills --list</span>
+          </div>
+          <div class="out">
+            <div class="row"><span class="check" aria-hidden="true">✔</span><span class="skill">landing-page-design</span><span class="desc">Builds a landing page from scratch</span></div>
+            <div class="row"><span class="check" aria-hidden="true">✔</span><span class="skill">figma-designer</span><span class="desc">Designs inside Figma with real structure</span></div>
+          </div>
+          <div class="cmd" style="margin-top: var(--sp-200);">
+            <span class="prompt" aria-hidden="true">$</span>
+            <span class="cmd-text"><span class="cursor" aria-hidden="true"></span></span>
+          </div>
+          <div class="copy-row">
+            <span class="label">Needs Node.js</span>
+            <button class="copy-btn" type="button" id="copyBtn" data-cmd="npx skills add elayadesign/ai-design-skills">Copy install command</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ② 标语揭示（B11：整页必做，逐词点亮） -->
+  <section class="tagline" aria-label="Tagline">
+    <div class="container">
+      <p id="taglineText">Your AI already writes the code. Now hand it the design rules.</p>
+      <p class="tagline-note body-6 reveal">Skills are plain markdown. The rules are the product.</p>
+    </div>
+  </section>
+
+  <!-- ③ 问题 → 方案（A2 第 6 节） -->
+  <section class="section problem">
+    <div class="container lead">
+      <p class="kicker caption-3">THE MISSING PIECE</p>
+      <h2 class="heading-3">The code compiles. The design does not.</h2>
+      <p class="body-5">AI coding tools ship working features with generic layouts, borrowed fonts and spacing that means nothing. Ask for a landing page and you get a page. Ask for a good one and you get whatever the model remembers.</p>
+      <p class="body-2">The gap was never the code. It was a design system the model could follow. These skills put one in place, one markdown file at a time.</p>
+    </div>
+  </section>
+
+  <!-- ④ Benefits（A2 第 7 节，收益先行） -->
+  <section class="section" id="skills">
+    <div class="container">
+      <div class="section-head reveal">
+        <p class="kicker caption-3">WHAT YOU GET</p>
+        <h2 class="heading-2">Two skills. One way of working.</h2>
+        <p class="body-5 muted">Each skill is a self-contained folder with a single SKILL.md. Install the ones you need.</p>
+      </div>
+      <div class="grid-2">
+        <article class="card reveal">
+          <span class="icon" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M7 9h7M7 13h10"/></svg>
+          </span>
+          <h3 class="heading-5">Pages that argue, not just render</h3>
+          <p class="body-6"><code class="mono">landing-page-design</code> runs intake before pixels: page structure, conversion copy, then the visual system, in that order. The output has a job to do.</p>
+        </article>
+        <article class="card reveal">
+          <span class="icon" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v9m0 0-3.5 3.5M12 12l3.5 3.5"/><circle cx="12" cy="18.5" r="2.5"/></svg>
+          </span>
+          <h3 class="heading-5">Figma files you can actually edit</h3>
+          <p class="body-6"><code class="mono">figma-designer</code> builds real structure: spacing, radius and color variables, named text styles, auto layout, components with every state, and a Foundations frame that tracks the tokens.</p>
+        </article>
+        <article class="card reveal">
+          <span class="icon" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h16M4 17h10"/></svg>
+          </span>
+          <h3 class="heading-5">One file per skill, any tool</h3>
+          <p class="body-6">Claude Code, Cursor, Codex, Windsurf and Cline all read the same markdown. Nothing to port, nothing to rewrite when you switch editors.</p>
+        </article>
+        <article class="card reveal">
+          <span class="icon" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><path d="M6 8.5v7"/><circle cx="18" cy="6" r="2.5"/><path d="M18 8.5V14a4 4 0 0 1-4 4H9.5"/></svg>
+          </span>
+          <h3 class="heading-5">Yours to fork</h3>
+          <p class="body-6">Every design value, fonts, colors, spacing, radius, motion, lives in one section near the bottom of each file. Fork the repo, edit that section, and the rest of the skill follows.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ⑤ How it works（A2 第 8 节，三步） -->
+  <section class="section" id="how" style="border-top: 1px solid var(--line);">
+    <div class="container">
+      <div class="section-head reveal">
+        <p class="kicker caption-3">HOW IT WORKS</p>
+        <h2 class="heading-2">Install, ask, ship.</h2>
+      </div>
+      <div class="steps">
+        <article class="step reveal">
+          <span class="no caption-4">STEP 01</span>
+          <h3 class="heading-5">Install</h3>
+          <p class="body-6">Run one <code>npx</code> command. Pick the skills you want and the agents that should get them. Skills land in <code>.claude/skills/</code> or <code>.agents/skills/</code>.</p>
+        </article>
+        <article class="step reveal">
+          <span class="no caption-4">STEP 02</span>
+          <h3 class="heading-5">Ask in plain language</h3>
+          <p class="body-6">“Build a landing page for my app.” The skill handles intake, structure, copy and the visual system. You review the result, not the rules.</p>
+        </article>
+        <article class="step reveal">
+          <span class="no caption-4">STEP 03</span>
+          <h3 class="heading-5">Ship, then update</h3>
+          <p class="body-6">Output follows one design system end to end. Run <code>npx skills update</code> later to pull changes from the repo.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ⑥ Proof（A2 第 9 节：只用真实数据，无证言） -->
+  <section class="section" id="proof" style="border-top: 1px solid var(--line);">
+    <div class="container">
+      <div class="section-head reveal">
+        <p class="kicker caption-3">PROOF</p>
+        <h2 class="heading-2">Numbers, not adjectives.</h2>
+        <p class="body-5 muted">Everything below is read from the public repository. No testimonials yet, so there are none on this page.</p>
+      </div>
+      <div class="stats">
+        <div class="stat reveal"><div class="num">15,045</div><div class="cap caption-4">GitHub stars</div></div>
+        <div class="stat reveal"><div class="num">1,144</div><div class="cap caption-4">Forks</div></div>
+        <div class="stat reveal"><div class="num">2</div><div class="cap caption-4">Skills shipped</div></div>
+        <div class="stat reveal"><div class="num">MIT</div><div class="cap caption-4">License, no attribution needed</div></div>
+      </div>
+      <p class="proof-note caption-5 reveal">GitHub numbers as of November 9, 2026. Every SKILL.md is validated by CI on each push.</p>
+    </div>
+  </section>
+
+  <!-- ⑦ 同生态 -->
+  <section class="section" style="border-top: 1px solid var(--line);">
+    <div class="container">
+      <div class="section-head reveal">
+        <p class="kicker caption-3">THE REST OF THE TOOLKIT</p>
+        <h2 class="heading-2">Same rules, other jobs.</h2>
+      </div>
+      <div class="grid-2">
+        <a class="card eco-card reveal" href="https://github.com/elayadesign/redesign-skill" target="_blank" rel="noopener">
+          <span class="top"><span class="title-2">redesign-skill</span><span class="go" aria-hidden="true">↗</span></span>
+          <p class="body-6">Upgrading an existing site instead of building new? It lives in its own repo since it predates this collection.</p>
+        </a>
+        <a class="card eco-card reveal" href="https://slopscan.co" target="_blank" rel="noopener">
+          <span class="top"><span class="title-2">SlopScan</span><span class="go" aria-hidden="true">↗</span></span>
+          <p class="body-6">Audits a live page against these same rules and hands your agent a fix prompt. Diagnosis first, then the fix.</p>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ⑧ FAQ（A2 第 10 节，八问） -->
+  <section class="section" id="faq" style="border-top: 1px solid var(--line);">
+    <div class="container">
+      <div class="section-head reveal">
+        <p class="kicker caption-3">FAQ</p>
+        <h2 class="heading-2">Questions, answered plainly.</h2>
+      </div>
+      <div class="faq-list">
+        <details class="faq-item reveal">
+          <summary>Is this just a prompt pack?<span class="plus" aria-hidden="true"></span></summary>
+          <div class="answer body-6"><p>No. Each skill is one markdown rules file with two halves: a strategy section that decides what the page says, and a visual system that decides how it looks. The model follows the file, not a vibe.</p></div>
+        </details>
+        <details class="faq-item reveal">
+          <summary>Which tools does it work with?<span class="plus" aria-hidden="true"></span></summary>
+          <div class="answer body-6"><p>Anything that reads a markdown rules file: Claude Code, Cursor, Codex, Windsurf, Cline. On Claude.ai, download the SKILL.md and upload it to a Project or attach it to a chat.</p></div>
+        </details>
+        <details class="faq-item reveal">
+          <summary>Do I have to install both skills?<span class="plus" aria-hidden="true"></span></summary>
+          <div class="answer body-6"><p>No. Install only what you need: <code>npx skills add elayadesign/ai-design-skills --skill landing-page-design</code>.</p></div>
+        </details>
+        <details class="faq-item reveal">
+          <summary>Can I change the design values?<span class="plus" aria-hidden="true"></span></summary>
+          <div class="answer body-6"><p>Yes. Fonts, colors, spacing, radius and motion live in one section near the bottom of each file. Fork the repo, edit that section, and the rest of the skill follows automatically.</p></div>
+        </details>
+        <details class="faq-item reveal">
+          <summary>What if my site already exists?<span class="plus" aria-hidden="true"></span></summary>
+          <div class="answer body-6"><p>Use the companion skill, <code>redesign-skill</code>. It diagnoses an existing site and defers to these rules for every concrete value.</p></div>
+        </details>
+        <details class="faq-item reveal">
+          <summary>Can I audit a live page?<span class="plus" aria-hidden="true"></span></summary>
+          <div class="answer body-6"><p>SlopScan checks a live page against the same rules and hands your agent a fix prompt.</p></div>
+        </details>
+        <details class="faq-item reveal">
+          <summary>Does it need an account or send data anywhere?<span class="plus" aria-hidden="true"></span></summary>
+          <div class="answer body-6"><p>No account. The skills are local markdown files that live in your project. The repo itself runs CI that validates every SKILL.md on each push.</p></div>
+        </details>
+        <details class="faq-item reveal">
+          <summary>What is the license?<span class="plus" aria-hidden="true"></span></summary>
+          <div class="answer body-6"><p>MIT. Use it, fork it, ship what you build with it. No attribution needed.</p></div>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <!-- ⑨ 风险逆转 + 最终 CTA（与顶部一致） -->
+  <section class="section final" style="border-top: 1px solid var(--line);">
+    <div class="container">
+      <p class="kicker caption-3">START NOW</p>
+      <h2 class="heading-2">Give your AI the design rules today.</h2>
+      <span class="cmd-chip mono">$ npx skills add elayadesign/ai-design-skills</span>
+      <div class="cta-row">
+        <a class="btn btn-primary button-md" href="https://github.com/elayadesign/ai-design-skills" target="_blank" rel="noopener">Get the skills <span class="arrow" aria-hidden="true">→</span></a>
+        <a class="btn btn-ghost button-md" href="https://skills.sh/elayadesign/ai-design-skills" target="_blank" rel="noopener">Browse on skills.sh ↗</a>
+      </div>
+      <ul class="risk caption-4">
+        <li>MIT licensed</li>
+        <li>No account</li>
+        <li>Local markdown files</li>
+        <li>Fork friendly</li>
+      </ul>
+    </div>
+  </section>
+
+</main>
+
+<!-- ⑩ 页脚 -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <p class="wordmark mono title-4" style="margin: 0;">ai-design-skills</p>
+        <p class="f-note body-6">A growing collection of design skills for AI coding tools. This page is an unofficial case study demo, generated with the landing-page-design skill. The project itself lives on GitHub.</p>
+      </div>
+      <div class="f-links">
+        <a href="https://github.com/elayadesign/ai-design-skills" target="_blank" rel="noopener">GitHub repository ↗</a>
+        <a href="https://skills.sh/elayadesign/ai-design-skills" target="_blank" rel="noopener">skills.sh listing ↗</a>
+        <a href="https://github.com/elayadesign/redesign-skill" target="_blank" rel="noopener">redesign-skill ↗</a>
+        <a href="https://slopscan.co" target="_blank" rel="noopener">SlopScan ↗</a>
+        <a href="https://github.com/elayadesign/ai-design-skills/blob/main/LICENSE" target="_blank" rel="noopener">MIT license ↗</a>
+      </div>
+    </div>
+    <div class="f-bottom caption-5">
+      <span>Case study on <a href="/resources/">shanren4002.github.io/resources</a> · Built with the landing-page-design skill</span>
+      <span>Numbers as of Nov 9, 2026</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+  (function () {
+    'use strict';
+    var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    /* —— 移动端菜单：开合 + Esc + 链接点击即闭 —— */
+    var toggle = document.querySelector('.nav-toggle');
+    var menu = document.getElementById('mobile-menu');
+    var setMenu = function (open) {
+      document.body.classList.toggle('menu-open', open);
+      if (toggle) toggle.setAttribute('aria-expanded', String(open));
+      if (toggle) toggle.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
+    };
+    if (toggle) {
+      toggle.addEventListener('click', function () {
+        setMenu(!document.body.classList.contains('menu-open'));
+      });
+    }
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') setMenu(false);
+    });
+    if (menu) {
+      menu.querySelectorAll('a').forEach(function (a) {
+        a.addEventListener('click', function () { setMenu(false); });
+      });
+    }
+
+    /* —— 滚动显现：IntersectionObserver，只播一次（B7） —— */
+    var revealEls = document.querySelectorAll('.reveal');
+    if (reduceMotion || !('IntersectionObserver' in window)) {
+      revealEls.forEach(function (el) { el.classList.add('in'); });
+    } else {
+      var io = new IntersectionObserver(function (entries) {
+        entries.forEach(function (en) {
+          if (en.isIntersecting) {
+            en.target.classList.add('in');
+            io.unobserve(en.target);
+          }
+        });
+      }, { threshold: 0.15, rootMargin: '0px 0px -8% 0px' });
+      revealEls.forEach(function (el) { io.observe(el); });
+    }
+
+    /* —— 标语揭示（B11）：逐词点亮，阅读顺序 —— */
+    var tagline = document.getElementById('taglineText');
+    if (tagline) {
+      var words = tagline.textContent.trim().split(/\s+/);
+      tagline.textContent = '';
+      var spans = words.map(function (w, i) {
+        var s = document.createElement('span');
+        s.className = 'tw';
+        s.textContent = w;
+        tagline.appendChild(s);
+        if (i < words.length - 1) tagline.appendChild(document.createTextNode(' '));
+        return s;
+      });
+      var activate = function () {
+        spans.forEach(function (s, i) {
+          setTimeout(function () { s.classList.add('on'); }, i * 80);
+        });
+      };
+      if (reduceMotion || !('IntersectionObserver' in window)) {
+        spans.forEach(function (s) { s.classList.add('on'); });
+      } else {
+        var io2 = new IntersectionObserver(function (entries) {
+          entries.forEach(function (en) {
+            if (en.isIntersecting) { activate(); io2.disconnect(); }
+          });
+        }, { threshold: 0.4 });
+        io2.observe(tagline);
+      }
+    }
+
+    /* —— 复制安装命令（B9：完整状态集；clipboard 承诺挂起时 800ms 兜底） —— */
+    var copyBtn = document.getElementById('copyBtn');
+    if (copyBtn) {
+      var label = copyBtn.textContent;
+      var timer = null;
+      var showCopied = function () {
+        copyBtn.textContent = 'Copied';
+        copyBtn.classList.add('copied');
+        clearTimeout(timer);
+        timer = setTimeout(function () {
+          copyBtn.textContent = label;
+          copyBtn.classList.remove('copied');
+        }, 2000);
+      };
+      copyBtn.addEventListener('click', function () {
+        var cmd = copyBtn.getAttribute('data-cmd') || '';
+        var settled = false;
+        var settle = function (usedFallback) {
+          if (settled) return;
+          settled = true;
+          if (usedFallback) fallbackCopy(cmd);
+          showCopied();
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(cmd).then(
+            function () { settle(false); },
+            function () { settle(true); }
+          );
+          setTimeout(function () { settle(true); }, 800); // 承诺挂起兜底
+        } else {
+          settle(true);
+        }
+      });
+    }
+    function fallbackCopy(text) {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.setAttribute('readonly', '');
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); } catch (e) { /* noop */ }
+      document.body.removeChild(ta);
+    }
+
+    /* —— 导航当前节指示（B9） —— */
+    var spyLinks = Array.prototype.slice.call(document.querySelectorAll('[data-spy]'));
+    var sections = spyLinks.map(function (l) { return document.getElementById(l.getAttribute('data-spy')); }).filter(Boolean);
+    if ('IntersectionObserver' in window && sections.length) {
+      var io3 = new IntersectionObserver(function (entries) {
+        entries.forEach(function (en) {
+          var link = spyLinks.filter(function (l) { return l.getAttribute('data-spy') === en.target.id; })[0];
+          if (link) link.setAttribute('aria-current', en.isIntersecting ? 'true' : 'false');
+        });
+      }, { rootMargin: '-40% 0px -55% 0px' });
+      sections.forEach(function (s) { io3.observe(s); });
+    }
+  })();
+</script>
+</body>
+</html>

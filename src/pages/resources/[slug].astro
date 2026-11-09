@@ -36,11 +36,14 @@ const fmt = (d: Date) =>
         <a class="action action-primary" href={data.link_url} target="_blank" rel="noopener">
           {data.link_label} <span aria-hidden="true">↗</span>
         </a>
-        {data.links.map((l) => (
-          <a class="action" href={l.url} target="_blank" rel="noopener">
-            {l.label} <span aria-hidden="true">↗</span>
-          </a>
-        ))}
+        {data.links.map((l) => {
+          const external = /^https?:\/\//.test(l.url);
+          return (
+            <a class="action" href={l.url} {...(external ? { target: '_blank', rel: 'noopener' } : {})}>
+              {l.label} <span aria-hidden="true">{external ? '↗' : '→'}</span>
+            </a>
+          );
+        })}
       </div>
 
       {data.tags.length > 0 && (
