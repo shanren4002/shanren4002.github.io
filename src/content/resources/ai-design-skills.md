@@ -4,7 +4,7 @@ slug: ai-design-skills
 kind: Skill 包
 tags: [AI 设计, Skill, Claude Code, Cursor, Figma, 落地页]
 date: 2026-11-09
-status: draft
+status: published
 summary: 给 AI 编码工具用的设计 Skill 合集：landing-page-design 从零起落地页、figma-designer 在 Figma 里做结构化设计，一行 npx 即装，MIT。附本站用它生成的落地页案例。
 link_url: https://github.com/elayadesign/ai-design-skills
 link_label: 访问仓库
