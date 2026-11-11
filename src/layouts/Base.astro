@@ -49,7 +49,7 @@ const isActive = (href: string) =>
          * 布尔值 → 门禁 → push → Actions 双绿后全站生效（约 1-2 分钟，新会话刷新可见）。
          * 关闭路径与 nosplash/webdriver/reduced-motion 豁免同走 off 分支：
          * 移除挂载点、不加载 splash.css/splash.js、无黑屏无锁滚动。默认值：true（开）。 */
-        enabled: true,
+        enabled: false,
         mode: 'session',          // always | session | daily：每会话一次
         theme: 'light',
         speed: 1,
