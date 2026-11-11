@@ -101,3 +101,14 @@ python3 scripts/check_content.py  # 同上，CI 门禁①同款
 - [x] PAT 已注入：`pnpm exec wrangler secret put GITHUB_PAT --config worker/wrangler.toml`（Contents:write + Actions:write，90 天，仅作品集仓）
 - [x] GITHUB_CLIENT_SECRET 已注入：同上命令（轮换后的新 secret，2026-10-29 深夜完成）
 - [x] **M0 全部完成**：站点上线 + Worker 部署 + 3 vars + 2 secrets 就位 → 进入 M1
+
+## 10. 开机动画开关（用户一句话控制）
+
+- **开关点（唯一）**：`src/layouts/Base.astro` 内联配置 `window.__DSH_STARTUP__.enabled`（`true`=开 / `false`=关）。**默认 `true`（开）**，2026-11-11 应用户要求设立。
+- **触发形式**：用户直接对话说「开机动画关了 / 开了 / 打开开机动画 / 关闭开机动画」——无需用户自己改代码，AI 执行切换。
+- **AI 操作流程**（翻转该布尔值属配置调整，不构成 §2 禁止的版式修改）：
+  1. 改 `enabled` 值 → 2. `python3 scripts/check_content.py` + `pnpm build` → 3. commit（前缀 `feat(global):` / `fix(global):`，一主题一 commit）→ 4. push → 5. 等 Actions 双门禁全绿 → 6. 回复用户「已生效」
+  6. **生效时延**：push 后约 1-2 分钟部署完成即全站生效；对本会话已播过的用户，`mode:'session'` 下新开会话才会再播（关闭则任何会话都不播）
+- **关闭路径行为**（与 `?nosplash` / webdriver / reduced-motion 豁免同一 off 分支）：移除挂载点、不加载 `/startup/splash.js`、无黑幕无锁滚动，站点正常直开——专项 e2e 已覆盖该分支
+- **调试后门**（不受 enabled 影响，永远可用）：URL 加 `?nosplash=1` 临时不播；控制台 `__DSH_STARTUP_API__.replay()` 重播
+- 其余动画参数（频率/音量/音色/玻璃态等）见 Base.astro 配置块注释，用户要调时同理对话触发

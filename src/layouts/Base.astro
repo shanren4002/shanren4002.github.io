@@ -32,33 +32,23 @@ const isActive = (href: string) =>
     <meta name="description" content={description} />
     <meta name="generator" content={Astro.generator} />
     <!-- 开机动画（莱茵生命风 · 改编自开源项目 dsh-startup-screen，MIT，见 public/startup/LICENSE）：
-         样式表 + 首屏兜底 CSS（动画未就绪时黑幕先盖上，绝不闪出界面本体） -->
-    <link rel="stylesheet" href="/startup/splash.css" />
+         首屏兜底 CSS（动画未就绪时黑幕先盖上，绝不闪出界面本体）。
+         样式表 splash.css 与运行时 splash.js 由下方内联决策脚本按需注入：
+         关闭 / 本会话已播 / 自动化 / 减少动效 → 零动画资产请求。 -->
     <style is:inline>
       html.dsu-lock,html.dsu-lock body{overflow:hidden!important}
       html.dsu-lock body{background-color:#000!important}
       :root{--dsh-boot-bg:#000}
       #dsh-startup-root.dsu-boot{position:fixed;inset:0;z-index:2147483000;background:#000}
     </style>
-    <title>{title}</title>
-    <link rel="canonical" href={new URL(Astro.url.pathname, Astro.site)} />
-    <meta property="og:title" content={title} />
-    <meta property="og:description" content={description} />
-    <meta property="og:type" content="website" />
-    <meta property="og:url" content={new URL(Astro.url.pathname, Astro.site)} />
-    <meta property="og:site_name" content="作品集 · 个人档案" />
-    <meta property="og:locale" content="zh_CN" />
-    <meta name="twitter:card" content="summary" />
-    {/* 页面级 head 注入点（可选）：用于把关键样式/元信息放进 head 且晚于全局样式，
-        保证同名令牌覆盖与 body/html/:root 选择器的层叠顺序（沉浸画廊页暗色令牌依赖此槽位） */}
-    <slot name="head" />
-  </head>
-  <body>
-    <!-- 开机动画挂载点（必须与 splash.js 的 ROOT_ID 一致；dsu-boot 类由首屏兜底 CSS 立即盖黑） -->
-    <div id="dsh-startup-root" class="dsu-root dsu-boot"></div>
     <script is:inline>
       /* 开机动画配置（改编自 dsh-startup-screen；结构/时间线/音效与原版一致，仅品牌文案与徽标适配本站） */
       window.__DSH_STARTUP__ = {
+        /* ── 总开关（用户一句话控制，见 AGENTS.md §10）──────────────────────────
+         * enabled: true=开 / false=关。用户说「开机动画关了/开了」时，AI 改这一个
+         * 布尔值 → 门禁 → push → Actions 双绿后全站生效（约 1-2 分钟，新会话刷新可见）。
+         * 关闭路径与 nosplash/webdriver/reduced-motion 豁免同走 off 分支：
+         * 移除挂载点、不加载 splash.css/splash.js、无黑屏无锁滚动。默认值：true（开）。 */
         enabled: true,
         mode: 'session',          // always | session | daily：每会话一次
         theme: 'light',
@@ -99,34 +89,64 @@ const isActive = (href: string) =>
         glassBackdropBlur: 28
       };
       /* 本次是否播放的判定（原版 Host 侧 bootstrap 逻辑）+ 自动化环境豁免：
-         webdriver（E2E/截图）或 URL 带 nosplash 参数 → 不播，避免门禁脚本被动画挡住 */
+         webdriver（E2E/截图）或 URL 带 nosplash 参数 → 不播，避免门禁脚本被动画挡住。
+         决策前置到 head：只有判定播放时才注入 splash.css + splash.js，
+         关闭 / 已播 / 豁免路径对 /startup/ 零请求（off 分支的挂载点摘除在 body 侧，
+         因为 head 执行时 root 还没解析出来）。 */
       (function(){try{
         var c=window.__DSH_STARTUP__||{};
-        var root=document.getElementById('dsh-startup-root');
         var off=!c.enabled;
         if(!off&&c.mode==='session'&&sessionStorage.getItem('dsh-startup-screen:shown')==='1')off=true;
         if(!off&&c.mode==='daily'&&localStorage.getItem('dsh-startup-screen:day')===new Date().toISOString().slice(0,10))off=true;
         if(!off&&(navigator.webdriver||/[?&]nosplash(=|&|$)/.test(location.search)))off=true;
         /* 无障碍底线：系统设置「减少动效」的用户不播放片头 */
         if(!off&&window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches)off=true;
-        if(off){window.__DSH_STARTUP_SKIP__=true;if(root&&root.parentNode)root.parentNode.removeChild(root);}
-        else{
-          document.documentElement.classList.add('dsu-lock');
-          /* 运行时按需加载：本次不播的访问（本会话已播过 / 自动化 / 减少动效）完全不拉这 60KB */
-          var s=document.createElement('script');
-          s.src='/startup/splash.js';s.defer=true;
-          document.head.appendChild(s);
-          /* 兜底：splash.js 都没跑起来（404/被拦/语法错）时 9 秒后无条件放行，绝不锁黑屏 */
-          setTimeout(function(){try{
-            if(window.__DSH_STARTUP_RUNNING__===true)return;
-            var r=document.getElementById('dsh-startup-root');
-            if(r&&r.parentNode)r.parentNode.removeChild(r);
-            document.documentElement.classList.remove('dsu-lock');
-            if(document.body)document.body.style.overflow='';
-            window.__DSH_STARTUP_FAILED__=true;
-          }catch(e){}},9000);
-        }
+        window.__DSH_STARTUP_OFF__=off;
+        if(off)return;
+        /* 播放路径：先按需注入动画样式（黑幕兜底已由上方内联 CSS 负责，注入时机不影响首帧） */
+        var l=document.createElement('link');
+        l.rel='stylesheet';l.href='/startup/splash.css';
+        document.head.appendChild(l);
+        document.documentElement.classList.add('dsu-lock');
+        /* 运行时按需加载：本次不播的访问（已播过 / 自动化 / 减少动效 / 开关关闭）完全不拉这 60KB */
+        var s=document.createElement('script');
+        s.src='/startup/splash.js';s.defer=true;
+        document.head.appendChild(s);
+        /* 兜底：splash.js 都没跑起来（404/被拦/语法错）时 9 秒后无条件放行，绝不锁黑屏 */
+        setTimeout(function(){try{
+          if(window.__DSH_STARTUP_RUNNING__===true)return;
+          var r=document.getElementById('dsh-startup-root');
+          if(r&&r.parentNode)r.parentNode.removeChild(r);
+          document.documentElement.classList.remove('dsu-lock');
+          if(document.body)document.body.style.overflow='';
+          window.__DSH_STARTUP_FAILED__=true;
+        }catch(e){}},9000);
       }catch(e){}})();
+    </script>
+    <title>{title}</title>
+    <link rel="canonical" href={new URL(Astro.url.pathname, Astro.site)} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={new URL(Astro.url.pathname, Astro.site)} />
+    <meta property="og:site_name" content="作品集 · 个人档案" />
+    <meta property="og:locale" content="zh_CN" />
+    <meta name="twitter:card" content="summary" />
+    {/* 页面级 head 注入点（可选）：用于把关键样式/元信息放进 head 且晚于全局样式，
+        保证同名令牌覆盖与 body/html/:root 选择器的层叠顺序（沉浸画廊页暗色令牌依赖此槽位） */}
+    <slot name="head" />
+  </head>
+  <body>
+    <!-- 开机动画挂载点（必须与 splash.js 的 ROOT_ID 一致；dsu-boot 类由首屏兜底 CSS 立即盖黑） -->
+    <div id="dsh-startup-root" class="dsu-root dsu-boot"></div>
+    <script is:inline>
+      /* off 分支摘除挂载点：head 决策执行时 root 还没解析出来，故摘除放在此处。
+         播放路径的全部注入口（dsu-lock / splash.css / splash.js / 9s 兜底）均在 head 决策脚本完成。 */
+      if(window.__DSH_STARTUP_OFF__===true){
+        window.__DSH_STARTUP_SKIP__=true;
+        var r=document.getElementById('dsh-startup-root');
+        if(r&&r.parentNode)r.parentNode.removeChild(r);
+      }
     </script>
     {!wide && (
       <header class="site-head">
