@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>艾爱 · 终端会话实录 · AIPERSON Demo</title>
+<style>
+  :root {
+    --bg: #F4F1EA; --surface: #FBF9F4; --surface-2: #E2D8CC;
+    --text: #2C3635; --text-2: #4A525A; --accent-ink: #46648C;
+    --hl: #E7E3B4; --hover: #82BAA3; --line: #D3CFC2;
+    --term-bg: #2C3635; --term-surface: #3A4442; --term-text: #EDE8DA;
+    --term-dim: #97A09C; --term-input: #A8C6DF; --term-hl: #E7E3B4;
+    --tag-tool: #EF9F27; --tag-timer: #5DCAA5; --tag-ai: #AFA9EC; --tag-bypass: #B4B2A9;
+    --font-sans: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", system-ui, sans-serif;
+    --font-mono: "JetBrains Mono", "SF Mono", Consolas, "Courier New", monospace;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font-sans); line-height: 1.6; }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 48px 20px 64px; }
+
+  .kicker { font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.24em; color: var(--accent-ink); margin-bottom: 10px; }
+  h1 { font-size: clamp(1.6rem, 4vw, 2.2rem); font-weight: 600; line-height: 1.25; }
+  .meta { margin-top: 10px; font-size: 0.92rem; color: var(--text-2); }
+  .meta b { color: var(--accent-ink); font-weight: 600; }
+
+  .note { margin-top: 20px; background: var(--surface); border: 1px solid var(--line); border-left: 3px solid var(--accent-ink); border-radius: 8px; padding: 14px 16px; font-size: 0.88rem; color: var(--text-2); }
+  .note b { color: var(--text); }
+  .note code { font-family: var(--font-mono); font-size: 0.85em; background: var(--surface-2); border-radius: 4px; padding: 0 4px; }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+  .chip { font-family: var(--font-mono); font-size: 0.72rem; border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 3px 10px; color: var(--text-2); }
+  .chip i { font-style: normal; font-weight: 600; margin-right: 4px; }
+  .chip.c1 i { color: var(--tag-bypass); } .chip.c2 i { color: var(--tag-tool); }
+  .chip.c3 i { color: var(--tag-timer); } .chip.c4 i { color: var(--tag-ai); }
+
+  .term { margin-top: 20px; background: var(--term-bg); border-radius: 12px; overflow: hidden; box-shadow: 0 1px 0 var(--line); }
+  .term-bar { display: flex; align-items: center; gap: 8px; padding: 10px 14px; background: var(--term-surface); }
+  .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .dot.r { background: #E24B4A; } .dot.y { background: #EF9F27; } .dot.g { background: #5DCAA5; }
+  .term-title { margin-left: 6px; font-family: var(--font-mono); font-size: 0.75rem; color: var(--term-dim); }
+  .term-body { font-family: var(--font-mono); font-size: 13px; line-height: 1.7; padding: 16px 18px; height: 420px; overflow-y: auto; color: var(--term-text); }
+  @media (max-width: 600px) { .term-body { font-size: 12px; height: 340px; padding: 12px; } }
+
+  .ln { white-space: pre-wrap; word-break: break-all; }
+  .ln.status { color: var(--term-dim); }
+  .ln.input { color: var(--term-input); margin-top: 10px; }
+  .ln.input::before { content: "你："; color: var(--term-dim); }
+  .ln.label { color: var(--term-hl); margin-top: 8px; }
+  .ln.text { color: var(--term-text); padding-left: 0; }
+  .ln.end { color: var(--term-dim); margin-top: 10px; }
+  .tag { display: inline-block; font-size: 0.68rem; border-radius: 4px; padding: 0 6px; margin-left: 8px; vertical-align: middle; color: #2C3635; font-weight: 600; }
+  .tag.tool { background: var(--tag-tool); } .tag.timer { background: var(--tag-timer); }
+  .tag.ai { background: var(--tag-ai); } .tag.bypass { background: var(--tag-bypass); }
+  .cursor { display: inline-block; width: 8px; height: 15px; background: var(--term-hl); vertical-align: text-bottom; animation: blink 1s steps(1) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  .controls { display: flex; align-items: center; gap: 14px; margin-top: 14px; flex-wrap: wrap; }
+  button.play { font-family: var(--font-sans); font-size: 0.9rem; border: 1px solid var(--accent-ink); background: var(--accent-ink); color: var(--surface); border-radius: 8px; padding: 8px 18px; cursor: pointer; }
+  button.play:hover { background: var(--text); border-color: var(--text); }
+  .speed { display: flex; gap: 4px; }
+  .speed button { font-family: var(--font-mono); font-size: 0.78rem; border: 1px solid var(--line); background: var(--surface); color: var(--text-2); border-radius: 6px; padding: 5px 10px; cursor: pointer; }
+  .speed button.on { border-color: var(--accent-ink); color: var(--accent-ink); }
+  .progress { flex: 1; min-width: 120px; height: 4px; background: var(--surface-2); border-radius: 2px; overflow: hidden; }
+  .progress div { height: 100%; width: 0; background: var(--accent-ink); }
+  .clock { font-family: var(--font-mono); font-size: 0.78rem; color: var(--text-2); }
+
+  footer { margin-top: 28px; padding-top: 16px; border-top: 1px solid var(--line); font-size: 0.85rem; color: var(--text-2); }
+  footer a { color: var(--accent-ink); text-decoration: none; }
+  footer a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+<main class="wrap">
+  <header>
+    <p class="kicker">DEMO · 终端会话实录</p>
+    <h1>艾爱的一场真实会话</h1>
+    <p class="meta">AIPERSON · 本地 CLI 运行实录 · 全长约 <b>50 秒</b> · 覆盖四个机制：<b>时间旁路 / Function Calling / Timer 触发 / AI 主动决策</b></p>
+  </header>
+
+  <div class="note">
+    <b>这是什么：</b>本页是 AIPERSON 项目真实代码的一次运行实录——LangGraph 状态编排、工具调用参数校验、<code>threading.Timer</code> 调度、后台主动互动线程的空闲检测与 AI 决策，全部为真实执行；为免去 API key 与费用，模型回复由本地 stub 按角色卡文本生成，用户输入为脚本预编。点击「播放会话」观看完整时间线。
+  </div>
+
+  <div class="legend">
+    <span class="chip c1"><i>①</i>时间旁路 · 不调 LLM</span>
+    <span class="chip c2"><i>②</i>Function Calling · 自然语言设提醒</span>
+    <span class="chip c3"><i>③</i>Timer 触发 · 到点推送</span>
+    <span class="chip c4"><i>④</i>AI 主动决策 · 空闲 35s 后</span>
+  </div>
+
+  <div class="term">
+    <div class="term-bar">
+      <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+      <span class="term-title">aiperson — python main.py</span>
+    </div>
+    <div class="term-body" id="out"></div>
+  </div>
+
+  <div class="controls">
+    <button class="play" id="play">▶ 播放会话</button>
+    <div class="speed">
+      <button data-s="1" class="on">1×</button><button data-s="2">2×</button><button data-s="4">4×</button>
+    </div>
+    <div class="progress"><div id="bar"></div></div>
+    <span class="clock" id="clock">0.0s</span>
+  </div>
+
+  <footer>
+    <p><a href="/projects/aiperson/">← 返回项目档案《艾爱 · AI 陪伴助手》</a>　·　源码与架构详见档案页</p>
+  </footer>
+</main>
+
+<script>
+const EVENTS = [{"t": 0.0, "kind": "status", "text": "[状态] 等待输入。"}, {"t": 0.0, "kind": "input", "text": "现在几点"}, {"t": 0.0, "kind": "status", "text": "[状态] 艾爱正在处理你的消息……"}, {"t": 0.02, "kind": "reply_start", "text": "艾爱："}, {"t": 0.02, "kind": "reply", "text": "现在是 2026年11月14日 22:29:53。"}, {"t": 0.02, "kind": "status", "text": "[状态] 等待输入。"}, {"t": 0.91, "kind": "input", "text": "你是谁？"}, {"t": 0.91, "kind": "status", "text": "[状态] 艾爱正在处理你的消息……"}, {"t": 1.85, "kind": "reply_start", "text": "艾爱："}, {"t": 1.85, "kind": "reply", "text": "我是艾爱。YoRHa 型战斗安卓，现阶段的任务是协助你。闲聊可以，效率略低；直接说事更好。时间查询、定时提醒，或者别的——说明需求即可。"}, {"t": 1.85, "kind": "status", "text": "[状态] 等待输入。"}, {"t": 4.91, "kind": "input", "text": "8秒后提醒我站起来休息一下"}, {"t": 4.91, "kind": "status", "text": "[状态] 艾爱正在处理你的消息……"}, {"t": 4.94, "kind": "reply_start", "text": "艾爱："}, {"t": 4.94, "kind": "toolconfirm", "text": "提醒已设置：8 秒后触发，内容「站起来休息一下」。到点我会通知你。"}, {"t": 4.94, "kind": "status", "text": "[状态] 等待输入。"}, {"t": 13.08, "kind": "reply_start", "text": "艾爱："}, {"t": 13.08, "kind": "reminder", "text": "站起来休息一下"}, {"t": 40.06, "kind": "reply_start", "text": "艾爱："}, {"t": 40.06, "kind": "proactive", "text": "确认一下：你设置的休息提醒应该已经触发。如果已经离开过屏幕，无需回复。"}, {"t": 48.91, "kind": "input", "text": "exit"}, {"t": 48.91, "kind": "end", "text": "对话结束。"}];
+const DURATION = EVENTS.length ? EVENTS[EVENTS.length - 1].t : 0;
+const out = document.getElementById("out");
+const playBtn = document.getElementById("play");
+const bar = document.getElementById("bar");
+const clock = document.getElementById("clock");
+const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+let speed = 1;
+let timer = null;
+let typing = null;
+
+document.querySelectorAll(".speed button").forEach((b) => {
+  b.addEventListener("click", () => {
+    document.querySelectorAll(".speed button").forEach((x) => x.classList.remove("on"));
+    b.classList.add("on");
+    speed = Number(b.dataset.s);
+  });
+});
+
+function el(html) {
+  const d = document.createElement("div");
+  d.innerHTML = html;
+  return d.firstElementChild;
+}
+
+function tagFor(kind) {
+  if (kind === "toolconfirm") return '<span class="tag tool">Function Calling</span>';
+  if (kind === "reminder") return '<span class="tag timer">Timer 触发</span>';
+  if (kind === "proactive") return '<span class="tag ai">AI 主动决策</span>';
+  return "";
+}
+
+function scrollBottom() { out.scrollTop = out.scrollHeight; }
+
+function renderEvent(ev, done) {
+  if (ev.kind === "status") {
+    out.appendChild(el('<div class="ln status"></div>')).textContent = ev.text;
+    done();
+  } else if (ev.kind === "input") {
+    out.appendChild(el('<div class="ln input"></div>')).textContent = ev.text;
+    done();
+  } else if (ev.kind === "end") {
+    out.appendChild(el('<div class="ln end"></div>')).textContent = ev.text;
+    done();
+  } else if (ev.kind === "reply_start") {
+    out.appendChild(el('<div class="ln label"></div>')).textContent = ev.text;
+    scrollBottom();
+    done();
+  } else {
+    const line = el('<div class="ln text"></div>');
+    out.appendChild(line);
+    const cursor = document.createElement("span");
+    cursor.className = "cursor";
+    const full = ev.text + tagFor(ev.kind);
+    if (reduceMotion) {
+      line.textContent = ev.text;
+      if (tagFor(ev.kind)) line.appendChild(el(tagFor(ev.kind)));
+      scrollBottom();
+      done();
+      return;
+    }
+    line.appendChild(cursor);
+    scrollBottom();
+    let i = 0;
+    const plain = ev.text;
+    const per = Math.max(6, 900 / Math.max(plain.length, 1)) / speed;
+    typing = setInterval(() => {
+      i++;
+      line.textContent = plain.slice(0, i);
+      line.appendChild(cursor);
+      scrollBottom();
+      if (i >= plain.length) {
+        clearInterval(typing);
+        cursor.remove();
+        if (tagFor(ev.kind)) line.appendChild(el(tagFor(ev.kind)));
+        done();
+      }
+    }, per);
+  }
+}
+
+function reset() {
+  clearTimeout(timer);
+  clearInterval(typing);
+  out.innerHTML = "";
+  bar.style.width = "0";
+  clock.textContent = "0.0s";
+}
+
+function play() {
+  reset();
+  playBtn.textContent = "↻ 重新播放";
+  const t0 = performance.now();
+  let idx = 0;
+  function step() {
+    if (idx >= EVENTS.length) return;
+    const ev = EVENTS[idx];
+    const at = (ev.t * 1000) / speed;
+    const wait = Math.max(0, at - (performance.now() - t0));
+    timer = setTimeout(() => {
+      idx++;
+      renderEvent(ev, step);
+      const pct = DURATION ? (ev.t / DURATION) * 100 : 100;
+      bar.style.width = pct + "%";
+      clock.textContent = ev.t.toFixed(1) + "s";
+    }, wait);
+  }
+  step();
+}
+
+playBtn.addEventListener("click", play);
+if (reduceMotion) {
+  EVENTS.forEach((ev) => {
+    if (ev.kind === "status") out.appendChild(el('<div class="ln status"></div>')).textContent = ev.text;
+    else if (ev.kind === "input") out.appendChild(el('<div class="ln input"></div>')).textContent = ev.text;
+    else if (ev.kind === "end") out.appendChild(el('<div class="ln end"></div>')).textContent = ev.text;
+    else if (ev.kind === "reply_start") out.appendChild(el('<div class="ln label"></div>')).textContent = ev.text;
+    else {
+      const line = el('<div class="ln text"></div>');
+      line.textContent = ev.text;
+      if (tagFor(ev.kind)) line.appendChild(el(tagFor(ev.kind)));
+      out.appendChild(line);
+    }
+  });
+}
+</script>
+</body>
+</html>
