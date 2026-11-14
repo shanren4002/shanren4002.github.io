@@ -1,0 +1,93 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 540" font-family="'PingFang SC','Hiragino Sans GB','Microsoft YaHei','Noto Sans SC',sans-serif">
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+  </defs>
+
+  <!-- 用户输入 -->
+  <g>
+    <rect x="305" y="16" width="160" height="40" rx="8" fill="#FBF9F4" stroke="#46648C" stroke-width="1"/>
+    <text x="385" y="40" text-anchor="middle" dominant-baseline="central" font-size="13" fill="#2C3635">用户输入（你：）</text>
+  </g>
+  <path d="M385 56 L385 84" fill="none" stroke="#5F5E5A" stroke-width="1.2" marker-end="url(#arr)"/>
+
+  <!-- 主循环 -->
+  <g>
+    <rect x="290" y="88" width="190" height="48" rx="8" fill="#FBF9F4" stroke="#46648C" stroke-width="1"/>
+    <text x="385" y="106" text-anchor="middle" dominant-baseline="central" font-size="13" font-weight="600" fill="#2C3635">main.py 主循环</text>
+    <text x="385" y="124" text-anchor="middle" dominant-baseline="central" font-size="11" fill="#5F5E5A">exit / 空输入 / 状态行</text>
+  </g>
+
+  <!-- 分流箭头 -->
+  <path d="M385 136 L135 176" fill="none" stroke="#5F5E5A" stroke-width="1.2" marker-end="url(#arr)"/>
+  <path d="M385 136 L380 176" fill="none" stroke="#5F5E5A" stroke-width="1.2" marker-end="url(#arr)"/>
+  <path d="M385 136 L625 176" fill="none" stroke="#5F5E5A" stroke-width="1.2" marker-end="url(#arr)"/>
+  <text x="180" y="150" text-anchor="middle" font-size="11" fill="#0F6E56" font-family="'JetBrains Mono',Consolas,monospace">命中时间查询</text>
+  <text x="560" y="150" text-anchor="middle" font-size="11" fill="#854F0B" font-family="'JetBrains Mono',Consolas,monospace">后台事件</text>
+  <text x="400" y="150" text-anchor="middle" font-size="11" fill="#185FA5" font-family="'JetBrains Mono',Consolas,monospace">未命中</text>
+
+  <!-- 第一行三列 -->
+  <g>
+    <rect x="30" y="180" width="210" height="56" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="1"/>
+    <text x="135" y="200" text-anchor="middle" dominant-baseline="central" font-size="13" font-weight="600" fill="#04342C">时间查询旁路</text>
+    <text x="135" y="219" text-anchor="middle" dominant-baseline="central" font-size="11" fill="#0F6E56" font-family="'JetBrains Mono',Consolas,monospace">commands.py · 正则匹配</text>
+  </g>
+  <g>
+    <rect x="275" y="180" width="210" height="56" rx="8" fill="#E6F1FB" stroke="#185FA5" stroke-width="1"/>
+    <text x="380" y="200" text-anchor="middle" dominant-baseline="central" font-size="13" font-weight="600" fill="#042C53">LangGraph 状态图</text>
+    <text x="380" y="219" text-anchor="middle" dominant-baseline="central" font-size="11" fill="#185FA5" font-family="'JetBrains Mono',Consolas,monospace">chat_node ⇄ tool_node</text>
+  </g>
+  <g>
+    <rect x="520" y="180" width="210" height="56" rx="8" fill="#FAEEDA" stroke="#854F0B" stroke-width="1"/>
+    <text x="625" y="200" text-anchor="middle" dominant-baseline="central" font-size="13" font-weight="600" fill="#412402">ProactiveService</text>
+    <text x="625" y="219" text-anchor="middle" dominant-baseline="central" font-size="11" fill="#854F0B" font-family="'JetBrains Mono',Consolas,monospace">后台线程 · AI 决策</text>
+  </g>
+
+  <!-- 列内箭头 -->
+  <path d="M135 236 L135 264" fill="none" stroke="#5F5E5A" stroke-width="1.2" marker-end="url(#arr)"/>
+  <path d="M380 236 L380 264" fill="none" stroke="#5F5E5A" stroke-width="1.2" marker-start="url(#arr)" marker-end="url(#arr)"/>
+  <path d="M625 236 L625 264" fill="none" stroke="#5F5E5A" stroke-width="1.2" marker-end="url(#arr)"/>
+
+  <!-- 第二行三列 -->
+  <g>
+    <rect x="30" y="268" width="210" height="56" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="1"/>
+    <text x="135" y="288" text-anchor="middle" dominant-baseline="central" font-size="13" font-weight="600" fill="#04342C">本地取时回答</text>
+    <text x="135" y="307" text-anchor="middle" dominant-baseline="central" font-size="11" fill="#0F6E56" font-family="'JetBrains Mono',Consolas,monospace">不调用 LLM</text>
+  </g>
+  <g>
+    <rect x="275" y="268" width="210" height="56" rx="8" fill="#E6F1FB" stroke="#185FA5" stroke-width="1"/>
+    <text x="380" y="288" text-anchor="middle" dominant-baseline="central" font-size="13" font-weight="600" fill="#042C53">ToolExecutor</text>
+    <text x="380" y="307" text-anchor="middle" dominant-baseline="central" font-size="11" fill="#185FA5" font-family="'JetBrains Mono',Consolas,monospace">参数校验 + 实际执行</text>
+  </g>
+  <g>
+    <rect x="520" y="268" width="210" height="56" rx="8" fill="#FAEEDA" stroke="#854F0B" stroke-width="1"/>
+    <text x="625" y="288" text-anchor="middle" dominant-baseline="central" font-size="13" font-weight="600" fill="#412402">ReminderScheduler</text>
+    <text x="625" y="307" text-anchor="middle" dominant-baseline="central" font-size="11" fill="#854F0B" font-family="'JetBrains Mono',Consolas,monospace">threading.Timer · 到点触发</text>
+  </g>
+
+  <!-- 汇入分发器 -->
+  <path d="M135 324 L250 376" fill="none" stroke="#5F5E5A" stroke-width="1.2" marker-end="url(#arr)"/>
+  <path d="M380 324 L380 376" fill="none" stroke="#5F5E5A" stroke-width="1.2" marker-end="url(#arr)"/>
+  <path d="M625 324 L510 376" fill="none" stroke="#5F5E5A" stroke-width="1.2" marker-end="url(#arr)"/>
+
+  <g>
+    <rect x="180" y="380" width="400" height="56" rx="8" fill="#EEEDFE" stroke="#534AB7" stroke-width="1"/>
+    <text x="380" y="400" text-anchor="middle" dominant-baseline="central" font-size="13" font-weight="600" fill="#26215C">OutboundMessageDispatcher · 统一分发器</text>
+    <text x="380" y="419" text-anchor="middle" dominant-baseline="central" font-size="11" fill="#534AB7" font-family="'JetBrains Mono',Consolas,monospace">去重 · 限频 · 共享状态 · 队列投递</text>
+  </g>
+
+  <path d="M275 436 L275 466" fill="none" stroke="#5F5E5A" stroke-width="1.2" marker-end="url(#arr)"/>
+  <path d="M485 436 L495 466" fill="none" stroke="#5F5E5A" stroke-width="1.2" marker-end="url(#arr)"/>
+
+  <g>
+    <rect x="180" y="470" width="190" height="48" rx="8" fill="#FBF9F4" stroke="#46648C" stroke-width="1"/>
+    <text x="275" y="488" text-anchor="middle" dominant-baseline="central" font-size="13" font-weight="600" fill="#2C3635">打印到终端</text>
+    <text x="275" y="506" text-anchor="middle" dominant-baseline="central" font-size="11" fill="#5F5E5A" font-family="'JetBrains Mono',Consolas,monospace">艾爱：…</text>
+  </g>
+  <g>
+    <rect x="400" y="470" width="190" height="48" rx="8" fill="#FBF9F4" stroke="#46648C" stroke-width="1"/>
+    <text x="495" y="488" text-anchor="middle" dominant-baseline="central" font-size="13" font-weight="600" fill="#2C3635">SQLite 持久化</text>
+    <text x="495" y="506" text-anchor="middle" dominant-baseline="central" font-size="11" fill="#5F5E5A" font-family="'JetBrains Mono',Consolas,monospace">按 conversation_id</text>
+  </g>
+</svg>
