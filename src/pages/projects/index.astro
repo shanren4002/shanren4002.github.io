@@ -8,30 +8,68 @@ const isDev = import.meta.env.DEV;
 const projects = isDev ? all : all.filter((p) => p.data.status === 'published');
 const sorted = [...projects].sort((a, b) => b.data.date.getTime() - a.data.date.getTime());
 
-// 按分类分组（分类按项目数降序，多的在前）
-const byCategory = new Map<string, typeof sorted>();
+// 按月分组（倒序：最新月在先）——编年史版式的时间维度
+const MONTH_ZH = ['一月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '十一月', '十二月'];
+const pad2 = (n: number) => String(n).padStart(2, '0');
+type MonthGroup = { id: string; year: number; month: number; label: string; items: typeof sorted };
+const monthMap = new Map<string, MonthGroup>();
 for (const p of sorted) {
-  const list = byCategory.get(p.data.category) ?? [];
-  list.push(p);
-  byCategory.set(p.data.category, list);
+  const d = p.data.date;
+  const y = d.getFullYear();
+  const m = d.getMonth() + 1;
+  const key = `${y}-${pad2(m)}`;
+  if (!monthMap.has(key)) {
+    monthMap.set(key, { id: `m-${y}-${pad2(m)}`, year: y, month: m, label: MONTH_ZH[m - 1], items: [] });
+  }
+  monthMap.get(key)!.items.push(p);
 }
-const categories = [...byCategory.entries()].sort((a, b) => b[1].length - a[1].length);
+const months = [...monthMap.values()];
+
+// 分类 → 色点 class（图例与卡片圆点共用色板；未知分类回落工程实践色）
+const CAT_META: Record<string, string> = {
+  '智能体': 'c-agent',
+  'RAG 应用': 'c-rag',
+  '后端服务': 'c-backend',
+  'AI 产品': 'c-product',
+  '工具': 'c-tool',
+  '工程实践': 'c-eng',
+};
+const catCls = (c: string) => CAT_META[c] ?? 'c-eng';
+// 图例只列数据中实际出现过的分类（保持固定顺序）
+const legendCats = Object.keys(CAT_META).filter((c) => sorted.some((p) => p.data.category === c));
 
 const fmt = (d: Date) =>
   d.toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' });
-const idx = (i: number) => String(i + 1).padStart(2, '0');
+const md = (d: Date) => `${pad2(d.getMonth() + 1)} / ${pad2(d.getDate())}`;
+const rangeLabel = months.length > 0
+  ? `${months[months.length - 1].year}.${pad2(months[months.length - 1].month)} 至 ${months[0].year}.${pad2(months[0].month)}`
+  : '';
 ---
+
+{/* reveal 门闩必须先行：内联经典脚本在解析期执行，先于首帧加上 .js，
+    之后外链模块才布置 IntersectionObserver——杜绝内容闪现再隐藏 */}
+<script is:inline>document.documentElement.classList.add('js');</script>
 
 <Base title="项目 · 档案" description="项目档案：智能体 / RAG 应用 / 后端服务 / 工具 / 工程实践">
   <section class="projects-index">
+    <div class="grain" aria-hidden="true"></div>
+
     <header class="page-head">
-      <p class="head-kicker">ARCHIVE · 项目归档</p>
+      <p class="head-kicker">ARCHIVE · 项目编年</p>
       <h1 class="head-title"><span class="hl">项目</span></h1>
       <p class="head-meta">
-        <span class="stat-num">{sorted.length}</span> 个 · <span class="stat-num">{categories.length}</span> 个分类
+        <span class="stat-num">{sorted.length}</span> 个 · <span class="stat-num">{rangeLabel}</span> · <span class="stat-num">{legendCats.length}</span> 个分类
         {isDev && <span class="dev-hint">（dev 预览：含草稿，发布后仅可见 published）</span>}
       </p>
     </header>
+
+    {sorted.length > 0 && (
+      <div class="legend" aria-label="分类图例">
+        {legendCats.map((c) => (
+          <span class="item"><span class:list={['dot', catCls(c)]}></span>{c}</span>
+        ))}
+      </div>
+    )}
 
     {sorted.length === 0 ? (
       <div class="empty">
@@ -39,60 +77,60 @@ const idx = (i: number) => String(i + 1).padStart(2, '0');
         <p class="empty-sub">对 AI 说一句「帮我把这个项目上传到我的作品集」，或等本地抽查完成后发布。</p>
       </div>
     ) : (
-      <div class="cat-jump">
-        {categories.map(([cat, list], i) => (
-          <a href={`#cat-${encodeURIComponent(cat)}`}>
-            <span class="jump-index">{idx(i)}</span>{cat}
-            <span class="jump-count">{list.length}</span>
-          </a>
-        ))}
-      </div>
-    )}
+      <section class="timeline" aria-label="项目编年史" data-pagefind-body>
+        <span class="spine-fill" id="spine-fill" aria-hidden="true"></span>
 
-    {categories.map(([cat, list], i) => (
-      <section class="cat-section" id={`cat-${encodeURIComponent(cat)}`}>
-        <h2 class="cat-head">
-          <span class="cat-index">{idx(i)}</span>
-          <span class="cat-name">{cat}</span>
-          <span class="cat-count">{list.length} 个</span>
-        </h2>
-        <div class="project-list" data-pagefind-body>
-          {list.map((p) => (
-            <article class:list={['project-card', { featured: p.data.featured }]}>
-              <div class="project-meta">
-                <time datetime={p.data.date.toISOString()}>{fmt(p.data.date)}</time>
-                {p.data.featured && <span class="badge-featured">精选</span>}
-                {p.data.demo_type !== 'none' && <span class="badge-demo">有 Demo</span>}
-                {p.data.status === 'draft' && isDev && <span class="badge-draft">草稿</span>}
-              </div>
-              <h3><a href={`/projects/${p.data.slug}/`}>{p.data.title}</a></h3>
-              <p class="project-summary">{p.data.summary}</p>
-              {p.data.tech_stack.length > 0 && (
-                <div class="tech-row">
-                  {p.data.tech_stack.map((t) => <span class="tech">{t}</span>)}
-                </div>
-              )}
-              {p.data.tags.length > 0 && (
-                <div class="tag-row">
-                  {p.data.tags.map((t) => <span class="tag">#{t}</span>)}
-                </div>
-              )}
-            </article>
-          ))}
-        </div>
+        {months.map((mo) => (
+          <div class="month" id={mo.id}>
+            <a class="month-label" href={`#${mo.id}`}>{mo.year}<small>{mo.label}</small></a>
+            <span class="month-node" aria-hidden="true"></span>
+
+            {mo.items.map((p) => (
+              <article class:list={['node', 'reveal', { featured: p.data.featured }]}>
+                <span class:list={['node-dot', catCls(p.data.category)]} aria-hidden="true"></span>
+                <a class="node-card" href={`/projects/${p.data.slug}/`}>
+                  <span class="node-meta">
+                    <time datetime={p.data.date.toISOString()}>{md(p.data.date)}</time>
+                    <span class="node-cat"><span class:list={['dot', catCls(p.data.category)]}></span>{p.data.category}</span>
+                    {p.data.featured && <span class="badge badge-featured">精选</span>}
+                    {p.data.demo_type !== 'none' && <span class="badge badge-demo">有 Demo</span>}
+                    {p.data.status === 'draft' && isDev && <span class="badge badge-draft">草稿</span>}
+                  </span>
+                  <h3>{p.data.title}</h3>
+                  <p class="node-summary">{p.data.summary}</p>
+                  {p.data.tech_stack.length > 0 && (
+                    <span class="tech-row">{p.data.tech_stack.map((t) => <span class="tech">{t}</span>)}</span>
+                  )}
+                </a>
+              </article>
+            ))}
+          </div>
+        ))}
       </section>
-    ))}
+    )}
   </section>
+
+  {/* 实时进度指示：右下角小面板，读到底自动隐藏（避免压住页脚后台按钮） */}
+  <div class="tl-indicator" id="tl-indicator" aria-hidden="true">
+    <span class="tl-bar"><span class="tl-bar-fill" id="tl-bar-fill"></span></span>
+    <span id="tl-text">—</span>
+  </div>
 </Base>
+
+{/* 统一 border-box：Base 的通用重置被 Astro 作用域化为 [data-astro-cid-base] 只命中其自身元素，
+    本页元素仍是 content-box。is:inline 免作用域化，与画廊页同一解法（见画廊页同款注释） */}
+<style is:inline>
+  *, *::before, *::after { box-sizing: border-box; }
+</style>
 
 <style>
   .projects-index {
     padding: var(--sp-5) 0;
   }
 
-  /* —— 页头：编辑式大标题 + 大数字统计（与笔记列表同一语言）—— */
+  /* —— 页头：编辑式大标题 + 大数字统计 —— */
   .page-head {
-    margin-bottom: var(--sp-5);
+    margin-bottom: var(--sp-4);
   }
   .head-kicker {
     margin: 0 0 var(--sp-2);
@@ -106,6 +144,7 @@ const idx = (i: number) => String(i + 1).padStart(2, '0');
     font-size: clamp(2.6rem, 7vw, 4.2rem);
     font-weight: 600;
     line-height: 1.1;
+    text-wrap: balance;
   }
   .hl {
     position: relative;
@@ -133,6 +172,7 @@ const idx = (i: number) => String(i + 1).padStart(2, '0');
     font-weight: 600;
     color: var(--accent-ink);
     padding: 0 2px;
+    font-variant-numeric: tabular-nums;
   }
   .dev-hint {
     margin-left: var(--sp-2);
@@ -140,199 +180,259 @@ const idx = (i: number) => String(i + 1).padStart(2, '0');
     color: var(--accent-ink);
   }
 
-  /* —— 分类跳转：编号索引 —— */
-  .cat-jump {
+  /* —— 分类图例 —— */
+  .legend {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--sp-2);
-    margin-bottom: var(--sp-6);
-    padding-bottom: var(--sp-4);
-    border-bottom: 1px solid var(--line);
-  }
-  .cat-jump a {
-    display: inline-flex;
-    align-items: baseline;
-    gap: 6px;
-    font-size: 0.85rem;
-    color: var(--text);
-    text-decoration: none;
-    background: var(--surface);
-    border: 1px solid var(--line);
-    border-radius: var(--radius);
-    padding: var(--sp-1) var(--sp-2);
-    transition: border-color 150ms ease, color 150ms ease;
-  }
-  .cat-jump a:hover {
-    border-color: var(--accent-ink);
-    color: var(--accent-ink);
-  }
-  .jump-index {
-    font-family: var(--font-mono);
-    font-size: 0.72rem;
-    color: var(--accent-ink);
-  }
-  .jump-count {
-    font-family: var(--font-mono);
-    font-size: 0.72rem;
-    color: var(--text-2);
-  }
-
-  /* —— 分类节头 —— */
-  .cat-section {
-    margin-bottom: var(--sp-6);
-  }
-  .cat-head {
-    display: flex;
-    align-items: baseline;
-    gap: var(--sp-2);
-    margin: 0 0 var(--sp-4);
-    padding-bottom: var(--sp-2);
-    border-bottom: 2px solid var(--line);
-  }
-  .cat-index {
-    font-family: var(--font-mono);
-    font-size: 0.9rem;
-    color: var(--accent-ink);
-  }
-  .cat-name {
-    font-size: clamp(1.5rem, 3.4vw, 2.1rem);
-    font-weight: 600;
-    line-height: 1.2;
-  }
-  .cat-count {
-    margin-left: auto;
-    font-family: var(--font-mono);
-    font-size: 0.8rem;
-    color: var(--text-2);
-  }
-
-  /* —— 杂志网格：featured 大卡跨两列 —— */
-  .project-list {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: var(--sp-3);
+    padding: var(--sp-2) 0 var(--sp-4);
+    border-bottom: 1px solid var(--line);
+    font-size: 0.78rem;
+    color: var(--text-2);
   }
-  .project-card {
-    position: relative;
-    background: var(--surface);
-    border: 1px solid var(--line);
-    border-radius: var(--radius-lg);
-    padding: var(--sp-3) var(--sp-4);
-    overflow: hidden;
-    transition: transform 160ms ease, border-color 160ms ease;
+  .legend .item { display: inline-flex; align-items: center; gap: 6px; font-family: var(--font-mono); }
+  .dot { width: 10px; height: 10px; border-radius: 3px; display: inline-block; flex: none; }
+  .dot.c-agent   { background: var(--accent-ink); }
+  .dot.c-rag     { background: var(--hover); }
+  .dot.c-backend { background: var(--accent-2); }
+  .dot.c-product { background: var(--text); }
+  .dot.c-tool    { background: var(--tag-bg); }
+  .dot.c-eng     { background: var(--text-2); }
+
+  /* —— 纸纹噪点：全站一致的微妙纸张质感 —— */
+  .grain {
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    pointer-events: none;
+    opacity: 0.05;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
   }
-  /* hover 彩铅顶条（与笔记卡片同一语言） */
-  .project-card::before {
-    content: '';
+
+  /* —— 滚动进度脊柱：随阅读进度点亮 —— */
+  .spine-fill {
     position: absolute;
+    left: 96px;
     top: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    background: var(--hl);
-    transform: scaleX(0);
-    transform-origin: left;
-    transition: transform 180ms ease;
+    width: 2px;
+    height: 0;
+    background: var(--accent-ink);
+    border-radius: 1px;
   }
-  .project-card:hover {
-    transform: translateY(-2px);
-    border-color: var(--accent-ink);
+  .month-label {
+    color: inherit;
+    text-decoration: none;
+    transition: color 200ms var(--ease-base);
   }
-  .project-card:hover::before {
-    transform: scaleX(1);
+  .month-label:hover { color: var(--accent-ink); }
+  .month-label:focus-visible {
+    outline: 2px solid var(--accent-ink);
+    outline-offset: 2px;
   }
-  .project-meta {
+  .node.passed .node-dot { box-shadow: 0 0 0 4px var(--hl); }
+  .node.featured.passed .node-dot { box-shadow: 0 0 0 4px var(--tag-bg); }
+
+  /* —— 实时进度指示：右下角小面板 —— */
+  .tl-indicator {
+    position: fixed;
+    right: var(--sp-4);
+    bottom: var(--sp-4);
+    z-index: 2000;
     display: flex;
     align-items: center;
     gap: var(--sp-2);
     font-family: var(--font-mono);
-    font-size: 0.78rem;
+    font-size: 0.74rem;
     color: var(--text-2);
-    margin-bottom: var(--sp-1);
-  }
-  .badge-featured {
-    font-family: var(--font-sans);
-    background: var(--tag-bg);
-    color: var(--text);
-    border-radius: 4px;
-    padding: 0 6px;
-    font-size: 0.72rem;
-  }
-  .badge-demo {
-    font-family: var(--font-sans);
-    background: var(--hl);
-    color: var(--text);
-    border-radius: 4px;
-    padding: 0 6px;
-    font-size: 0.72rem;
-  }
-  .badge-draft {
-    font-family: var(--font-sans);
-    background: var(--surface-2);
+    background: var(--surface);
     border: 1px solid var(--line);
-    border-radius: 4px;
-    padding: 0 6px;
-    font-size: 0.72rem;
+    border-radius: var(--radius);
+    padding: var(--sp-1) var(--sp-3);
+    box-shadow: 0 4px 12px rgba(44, 54, 53, 0.08);
+    font-variant-numeric: tabular-nums;
+    transition: opacity 300ms var(--ease-base);
   }
-  .project-card h3 {
-    margin: 0 0 var(--sp-1);
-    font-size: 1.08rem;
-    line-height: 1.4;
-  }
-  .project-card h3 a {
-    color: var(--text);
-    text-decoration: none;
-  }
-  .project-card:hover h3 a {
-    color: var(--accent-ink);
-  }
-  .project-summary {
-    margin: 0 0 var(--sp-2);
-    color: var(--text-2);
-    font-size: 0.92rem;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
+  .tl-indicator.hide { opacity: 0; pointer-events: none; }
+  .tl-bar {
+    width: 64px;
+    height: 4px;
+    background: var(--surface-2);
+    border-radius: 2px;
     overflow: hidden;
   }
-  .tech-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--sp-1);
-    margin-bottom: var(--sp-1);
-  }
-  .tech {
-    font-family: var(--font-mono);
-    font-size: 0.72rem;
-    color: var(--accent-ink);
-    border: 1px solid var(--line);
-    background: var(--surface-2);
-    border-radius: 4px;
-    padding: 0 6px;
-  }
-  .tag-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--sp-1);
-  }
-  .tag {
-    font-size: 0.75rem;
-    color: var(--text-2);
+  .tl-bar-fill {
+    display: block;
+    height: 100%;
+    width: 100%;
+    background: var(--accent-ink);
+    transform-origin: left;
+    transform: scaleX(0);
   }
 
-  /* featured 大卡：跨两列 + 更大标题 + 三行摘要 */
-  .project-card.featured h3 {
-    font-size: clamp(1.3rem, 2.2vw, 1.6rem);
+  /* —— 时间线 —— */
+  .timeline {
+    position: relative;
+    padding: var(--sp-4) 0 var(--sp-6) 132px;
   }
-  .project-card.featured .project-summary {
-    -webkit-line-clamp: 3;
-    font-size: 0.98rem;
+  .timeline::before {
+    content: '';
+    position: absolute;
+    left: 96px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: var(--line);
   }
-  @media (min-width: 720px) {
-    .project-card.featured {
-      grid-column: span 2;
-      padding: var(--sp-4);
-    }
+
+  .month {
+    position: relative;
+    margin: var(--sp-5) 0 var(--sp-3);
+  }
+  .month:first-child { margin-top: 0; }
+  .month-label {
+    position: absolute;
+    left: -132px;
+    top: 0;
+    width: 76px;
+    text-align: right;
+    font-family: var(--font-mono);
+    font-weight: 600;
+    font-size: 1.05rem;
+    color: var(--text);
+    line-height: 1.3;
+    font-variant-numeric: tabular-nums;
+  }
+  .month-label small {
+    display: block;
+    font-size: 0.68rem;
+    font-weight: 400;
+    color: var(--text-2);
+    letter-spacing: 0.1em;
+  }
+  .month-node {
+    position: absolute;
+    left: -41px;
+    top: 6px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--text);
+    border: 2px solid var(--bg);
+  }
+
+  .node {
+    position: relative;
+    margin-bottom: var(--sp-3);
+  }
+  .node-dot {
+    position: absolute;
+    left: -41px;
+    top: 22px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid var(--bg);
+    box-shadow: 0 0 0 1px var(--line);
+    background: var(--text-2);
+  }
+  .node.featured .node-dot {
+    width: 16px;
+    height: 16px;
+    left: -43px;
+    top: 20px;
+    background: var(--hl);
+    border: 3px solid var(--accent-ink);
+  }
+  .node-card {
+    display: block;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    padding: var(--sp-3) var(--sp-4);
+    text-decoration: none;
+    color: inherit;
+    transform: rotate(var(--rot, 0deg));
+    transition: transform 200ms var(--ease-base), border-color 200ms var(--ease-base), box-shadow 200ms var(--ease-base);
+    box-shadow: 0 1px 2px rgba(44, 54, 53, 0.05);
+  }
+  .node-card:hover {
+    transform: translateY(-3px) rotate(0deg);
+    border-color: var(--accent-ink);
+    box-shadow: 0 6px 16px rgba(44, 54, 53, 0.08);
+  }
+  .node-card:active { transform: translateY(0) rotate(0deg); }
+  .node-card:focus-visible {
+    transform: translateY(-3px) rotate(0deg);
+    border-color: var(--accent-ink);
+    outline: 2px solid var(--accent-ink);
+    outline-offset: 2px;
+  }
+  /* —— 便签微旋转：每摞卡片微微歪一点，像随手贴在时间线上（编年史气质用更克制的 ±0.5°） —— */
+  @media (prefers-reduced-motion: no-preference) {
+    .node:nth-of-type(4n+1) .node-card { --rot: -0.5deg; }
+    .node:nth-of-type(4n+2) .node-card { --rot: 0.4deg; }
+    .node:nth-of-type(4n+3) .node-card { --rot: -0.3deg; }
+    .node:nth-of-type(4n+4) .node-card { --rot: 0.5deg; }
+  }
+  .node-meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--sp-2);
+    font-family: var(--font-mono);
+    font-size: 0.74rem;
+    color: var(--text-2);
+    margin-bottom: var(--sp-1);
+    font-variant-numeric: tabular-nums;
+  }
+  .node-cat { display: inline-flex; align-items: center; gap: 6px; color: var(--accent-ink); }
+  .badge {
+    font-family: var(--font-sans);
+    font-size: 0.7rem;
+    font-weight: 600;
+    border-radius: 4px;
+    padding: 0 6px;
+    line-height: 1.5;
+    white-space: nowrap;
+  }
+  .badge-featured { background: var(--tag-bg); color: var(--text); }
+  .badge-demo { background: var(--hl); color: var(--text); }
+  .badge-draft { background: var(--surface-2); border: 1px solid var(--line); color: var(--text-2); }
+  .node-card:hover .badge-demo { background: var(--hover); }
+  .node-card h3 {
+    margin: 0 0 var(--sp-1);
+    font-size: 1.1rem;
+    font-weight: 600;
+    line-height: 1.45;
+    text-wrap: balance;
+    transition: color 200ms var(--ease-base);
+  }
+  .node-card:hover h3 { color: var(--accent-ink); }
+  .node-summary {
+    margin: 0 0 var(--sp-2);
+    font-size: 0.9rem;
+    color: var(--text-2);
+    line-height: 1.6;
+    text-wrap: pretty;
+  }
+  .tech-row { display: flex; flex-wrap: wrap; gap: var(--sp-1); }
+  .tech {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--accent-ink);
+    border: 1px solid var(--line);
+    background: var(--surface);
+    border-radius: 4px;
+    padding: 0 6px;
+    white-space: nowrap;
+  }
+
+  /* —— 进场：节点 rise + fade，一次（门闩 html.js 防无 JS 时内容被藏） —— */
+  .js .reveal { opacity: 0; transform: translateY(24px); }
+  .js .reveal.in {
+    opacity: 1;
+    transform: none;
+    transition: opacity 700ms var(--ease-base), transform 700ms var(--ease-base);
   }
 
   .empty {
@@ -347,15 +447,96 @@ const idx = (i: number) => String(i + 1).padStart(2, '0');
     font-size: 0.88rem;
   }
 
+  @media (max-width: 760px) {
+    .timeline { padding-left: 0; }
+    .timeline::before { left: 5px; }
+    .spine-fill { left: 5px; }
+    .month-label {
+      position: static;
+      width: auto;
+      text-align: left;
+      margin-bottom: var(--sp-2);
+      font-size: 1.2rem;
+    }
+    .month-node { display: none; }
+    .node-dot { left: 0; top: 24px; }
+    .node.featured .node-dot { left: -2px; top: 22px; }
+    .node { padding-left: var(--sp-4); }
+  }
   @media (prefers-reduced-motion: reduce) {
-    .project-card:hover {
-      transform: none;
-    }
-    .project-card::before {
-      transition: none;
-    }
-    .cat-jump a {
-      transition: none;
-    }
+    .js .reveal { opacity: 1; transform: none; }
+    .js .reveal.in { transition: none; }
+    .node-card, .month-label { transition: none; }
+    .node-card:hover, .node-card:active, .node-card:focus-visible { transform: none; }
   }
 </style>
+
+<script>
+  // 项目列表 · 编年史交互（版四样板落地）：滚动显现 / 进度脊柱 / 实时月份指示
+  // 全部 vanilla；Astro 打包为外链模块（deferred），reveal 门闩由页首内联脚本提前加 .js 防闪现
+
+  // 0) reveal 门闩幂等保险（内联脚本已加过）
+  document.documentElement.classList.add('js');
+
+  // 1) 滚动显现（一次）
+  (function () {
+    var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var nodes = Array.prototype.slice.call(document.querySelectorAll('.reveal'));
+    if (reduce || !('IntersectionObserver' in window)) {
+      nodes.forEach(function (n) { n.classList.add('in'); });
+      return;
+    }
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+      });
+    }, { rootMargin: '0px 0px -6% 0px', threshold: 0.05 });
+    nodes.forEach(function (n) { io.observe(n); });
+  })();
+
+  // 2) 滚动进度脊柱 + 实时月份指示
+  (function () {
+    var timeline = document.querySelector('.timeline');
+    if (!timeline) return;
+    var fill = document.getElementById('spine-fill');
+    var barFill = document.getElementById('tl-bar-fill');
+    var text = document.getElementById('tl-text');
+    var indicator = document.getElementById('tl-indicator');
+    var months = Array.prototype.slice.call(document.querySelectorAll('.month'));
+    var allNodes = Array.prototype.slice.call(document.querySelectorAll('.node'));
+    var ticking = false;
+
+    function update() {
+      ticking = false;
+      var r = timeline.getBoundingClientRect();
+      var total = r.height - window.innerHeight;
+      var p = total > 0 ? Math.min(1, Math.max(0, -r.top / total)) : 1;
+      fill.style.height = (p * 100).toFixed(2) + '%';
+      barFill.style.transform = 'scaleX(' + p.toFixed(3) + ')';
+      // 当前月份：取视口中线所在的章节；读到底时收敛到最后一个月
+      var cur;
+      if (p >= 0.98) {
+        cur = months[months.length - 1];
+      } else {
+        cur = months[0];
+        months.forEach(function (m) {
+          if (m.getBoundingClientRect().top <= window.innerHeight * 0.5) cur = m;
+        });
+      }
+      var label = cur.querySelector('.month-label');
+      var labelText = (label.textContent || '').replace(/\s+/g, ' ').trim();
+      text.textContent = labelText + ' · ' + Math.round(p * 100) + '%';
+      allNodes.forEach(function (n) {
+        n.classList.toggle('passed', n.getBoundingClientRect().top < window.innerHeight * 0.5);
+      });
+      // 读到底隐藏指示器，避免压住页脚「后台管理」按钮
+      indicator.classList.toggle('hide', p >= 0.98);
+    }
+    function onScroll() {
+      if (!ticking) { ticking = true; requestAnimationFrame(update); }
+    }
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll);
+    update();
+  })();
+</script>
