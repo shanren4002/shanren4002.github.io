@@ -1,0 +1,120 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="640" viewBox="0 0 760 640" font-family="'PingFang SC','Hiragino Sans GB','Microsoft YaHei','Noto Sans SC',sans-serif" role="img" aria-label="Token 观测管线：每次 LLM 调用归属五阶段之一，record_response 读取响应 usage 字段，缺失时记 None 不估算为 0，条目累积进 Tracker，snapshot 即时计算总计与分阶段快照，最终渲染进报告的收入与准确度表格，真实运行数据为输入 7330、输出 2013、合计 9343 Token">
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+  </defs>
+
+  <!-- 入口：每一次 LLM 调用 -->
+  <g>
+    <rect x="280" y="12" width="200" height="40" rx="8" fill="#FBF9F4" stroke="#46648C" stroke-width="1"/>
+    <text x="380" y="32" text-anchor="middle" dominant-baseline="central" font-size="13" font-weight="600" fill="#2C3635">每一次 LLM 调用</text>
+  </g>
+
+  <!-- 分发到五阶段 -->
+  <path d="M380 52 L380 64" fill="none" stroke="#5F5E5A" stroke-width="1.2"/>
+  <path d="M92 64 L668 64" fill="none" stroke="#5F5E5A" stroke-width="1.2"/>
+  <path d="M92 64 L92 76" fill="none" stroke="#5F5E5A" stroke-width="1.2" marker-end="url(#arr)"/>
+  <path d="M236 64 L236 76" fill="none" stroke="#5F5E5A" stroke-width="1.2" marker-end="url(#arr)"/>
+  <path d="M380 64 L380 76" fill="none" stroke="#5F5E5A" stroke-width="1.2" marker-end="url(#arr)"/>
+  <path d="M524 64 L524 76" fill="none" stroke="#5F5E5A" stroke-width="1.2" marker-end="url(#arr)"/>
+  <path d="M668 64 L668 76" fill="none" stroke="#5F5E5A" stroke-width="1.2" marker-end="url(#arr)"/>
+
+  <!-- 五阶段枚举 -->
+  <g>
+    <rect x="24" y="76" width="136" height="44" rx="8" fill="#FBF9F4" stroke="#46648C" stroke-width="1"/>
+    <text x="92" y="91" text-anchor="middle" dominant-baseline="central" font-size="9.5" fill="#5F5E5A" font-family="'JetBrains Mono',Consolas,monospace">intent_classification</text>
+    <text x="92" y="108" text-anchor="middle" dominant-baseline="central" font-size="10" fill="#2C3635">意图分类</text>
+  </g>
+  <g>
+    <rect x="168" y="76" width="136" height="44" rx="8" fill="#FBF9F4" stroke="#46648C" stroke-width="1"/>
+    <text x="236" y="91" text-anchor="middle" dominant-baseline="central" font-size="9.5" fill="#5F5E5A" font-family="'JetBrains Mono',Consolas,monospace">clarification_question</text>
+    <text x="236" y="108" text-anchor="middle" dominant-baseline="central" font-size="10" fill="#2C3635">澄清提问</text>
+  </g>
+  <g>
+    <rect x="312" y="76" width="136" height="44" rx="8" fill="#FBF9F4" stroke="#46648C" stroke-width="1"/>
+    <text x="380" y="91" text-anchor="middle" dominant-baseline="central" font-size="9.5" fill="#5F5E5A" font-family="'JetBrains Mono',Consolas,monospace">reclassification</text>
+    <text x="380" y="108" text-anchor="middle" dominant-baseline="central" font-size="10" fill="#2C3635">重分类</text>
+  </g>
+  <g>
+    <rect x="456" y="76" width="136" height="44" rx="8" fill="#FBF9F4" stroke="#46648C" stroke-width="1"/>
+    <text x="524" y="91" text-anchor="middle" dominant-baseline="central" font-size="9.5" fill="#5F5E5A" font-family="'JetBrains Mono',Consolas,monospace">summary</text>
+    <text x="524" y="108" text-anchor="middle" dominant-baseline="central" font-size="10" fill="#2C3635">摘要生成</text>
+  </g>
+  <g>
+    <rect x="600" y="76" width="136" height="44" rx="8" fill="#FBF9F4" stroke="#46648C" stroke-width="1"/>
+    <text x="668" y="91" text-anchor="middle" dominant-baseline="central" font-size="9.5" fill="#5F5E5A" font-family="'JetBrains Mono',Consolas,monospace">final_answer</text>
+    <text x="668" y="108" text-anchor="middle" dominant-baseline="central" font-size="10" fill="#2C3635">最终回答</text>
+  </g>
+
+  <!-- 汇回统一入口 -->
+  <path d="M92 120 L92 132" fill="none" stroke="#5F5E5A" stroke-width="1.2" marker-end="url(#arr)"/>
+  <path d="M236 120 L236 132" fill="none" stroke="#5F5E5A" stroke-width="1.2" marker-end="url(#arr)"/>
+  <path d="M380 120 L380 132" fill="none" stroke="#5F5E5A" stroke-width="1.2" marker-end="url(#arr)"/>
+  <path d="M524 120 L524 132" fill="none" stroke="#5F5E5A" stroke-width="1.2" marker-end="url(#arr)"/>
+  <path d="M668 120 L668 132" fill="none" stroke="#5F5E5A" stroke-width="1.2" marker-end="url(#arr)"/>
+  <path d="M92 132 L668 132" fill="none" stroke="#5F5E5A" stroke-width="1.2"/>
+  <path d="M380 132 L380 152" fill="none" stroke="#5F5E5A" stroke-width="1.2" marker-end="url(#arr)"/>
+
+  <!-- 记录 -->
+  <g>
+    <rect x="180" y="152" width="380" height="64" rx="8" fill="#E6F1FB" stroke="#185FA5" stroke-width="1"/>
+    <text x="370" y="174" text-anchor="middle" dominant-baseline="central" font-size="13" font-weight="600" fill="#042C53">record_response(stage, response)</text>
+    <text x="370" y="194" text-anchor="middle" dominant-baseline="central" font-size="11" fill="#185FA5" font-family="'JetBrains Mono',Consolas,monospace">读 usage：prompt / completion / total / cache</text>
+    <text x="370" y="212" text-anchor="middle" dominant-baseline="central" font-size="11" fill="#854F0B" font-family="'JetBrains Mono',Consolas,monospace">usage 缺失 → record_unknown · None 不估算为 0</text>
+  </g>
+  <path d="M380 216 L380 248" fill="none" stroke="#5F5E5A" stroke-width="1.2" marker-end="url(#arr)"/>
+
+  <!-- 累积 -->
+  <g>
+    <rect x="180" y="252" width="380" height="52" rx="8" fill="#FBF9F4" stroke="#46648C" stroke-width="1"/>
+    <text x="370" y="272" text-anchor="middle" dominant-baseline="central" font-size="13" font-weight="600" fill="#2C3635">TokenUsageTracker</text>
+    <text x="370" y="291" text-anchor="middle" dominant-baseline="central" font-size="11" fill="#5F5E5A" font-family="'JetBrains Mono',Consolas,monospace">_entries · frozen TokenUsageEntry 不可变条目</text>
+  </g>
+  <path d="M380 304 L380 336" fill="none" stroke="#5F5E5A" stroke-width="1.2" marker-end="url(#arr)"/>
+
+  <!-- 快照 -->
+  <g>
+    <rect x="180" y="340" width="380" height="52" rx="8" fill="#FBF9F4" stroke="#46648C" stroke-width="1"/>
+    <text x="370" y="360" text-anchor="middle" dominant-baseline="central" font-size="13" font-weight="600" fill="#2C3635">snapshot() 即时快照</text>
+    <text x="370" y="379" text-anchor="middle" dominant-baseline="central" font-size="11" fill="#5F5E5A" font-family="'JetBrains Mono',Consolas,monospace">TokenUsageSnapshot · 每次调用重新计算</text>
+  </g>
+  <path d="M300 392 L250 424" fill="none" stroke="#5F5E5A" stroke-width="1.2" marker-end="url(#arr)"/>
+  <path d="M460 392 L510 424" fill="none" stroke="#5F5E5A" stroke-width="1.2" marker-end="url(#arr)"/>
+
+  <!-- 两种视图 -->
+  <g>
+    <rect x="110" y="428" width="260" height="48" rx="8" fill="#FBF9F4" stroke="#46648C" stroke-width="1"/>
+    <text x="240" y="447" text-anchor="middle" dominant-baseline="central" font-size="12.5" font-weight="600" fill="#2C3635">total 总计</text>
+    <text x="240" y="465" text-anchor="middle" dominant-baseline="central" font-size="10.5" fill="#5F5E5A" font-family="'JetBrains Mono',Consolas,monospace">request_count · input · output · cache</text>
+  </g>
+  <g>
+    <rect x="390" y="428" width="260" height="48" rx="8" fill="#FBF9F4" stroke="#46648C" stroke-width="1"/>
+    <text x="520" y="447" text-anchor="middle" dominant-baseline="central" font-size="12.5" font-weight="600" fill="#2C3635">by_stage 分阶段</text>
+    <text x="520" y="465" text-anchor="middle" dominant-baseline="central" font-size="10.5" fill="#5F5E5A" font-family="'JetBrains Mono',Consolas,monospace">MappingProxyType 只读映射</text>
+  </g>
+  <path d="M240 476 L240 508" fill="none" stroke="#5F5E5A" stroke-width="1.2" marker-end="url(#arr)"/>
+  <path d="M520 476 L520 508" fill="none" stroke="#5F5E5A" stroke-width="1.2" marker-end="url(#arr)"/>
+
+  <!-- 报告表格 -->
+  <g>
+    <rect x="110" y="512" width="540" height="84" rx="8" fill="#EEEDFE" stroke="#534AB7" stroke-width="1"/>
+    <text x="185" y="528" text-anchor="middle" dominant-baseline="central" font-size="11.5" fill="#534AB7">策略</text>
+    <text x="330" y="528" text-anchor="middle" dominant-baseline="central" font-size="11.5" fill="#534AB7">输入 Token</text>
+    <text x="465" y="528" text-anchor="middle" dominant-baseline="central" font-size="11.5" fill="#534AB7">输出 Token</text>
+    <text x="590" y="528" text-anchor="middle" dominant-baseline="central" font-size="11.5" fill="#534AB7">合计 Token</text>
+    <path d="M110 538 L650 538" fill="none" stroke="#534AB7" stroke-width="0.8"/>
+    <text x="185" y="556" text-anchor="middle" dominant-baseline="central" font-size="13" font-weight="600" fill="#26215C">自适应</text>
+    <text x="330" y="556" text-anchor="middle" dominant-baseline="central" font-size="13" font-weight="600" fill="#26215C" font-family="'JetBrains Mono',Consolas,monospace">7,330</text>
+    <text x="465" y="556" text-anchor="middle" dominant-baseline="central" font-size="13" font-weight="600" fill="#26215C" font-family="'JetBrains Mono',Consolas,monospace">2,013</text>
+    <text x="590" y="556" text-anchor="middle" dominant-baseline="central" font-size="13" font-weight="600" fill="#26215C" font-family="'JetBrains Mono',Consolas,monospace">9,343</text>
+    <path d="M260 512 L260 570" fill="none" stroke="#534AB7" stroke-width="0.8"/>
+    <path d="M400 512 L400 570" fill="none" stroke="#534AB7" stroke-width="0.8"/>
+    <path d="M530 512 L530 570" fill="none" stroke="#534AB7" stroke-width="0.8"/>
+    <path d="M110 570 L650 570" fill="none" stroke="#534AB7" stroke-width="0.8"/>
+    <text x="380" y="585" text-anchor="middle" dominant-baseline="central" font-size="10" fill="#534AB7" font-family="'JetBrains Mono',Consolas,monospace">2026-10-18 · notes.md · 置信度 75% · 上下文=总结</text>
+  </g>
+
+  <!-- 底线声明 -->
+  <text x="380" y="620" text-anchor="middle" dominant-baseline="central" font-size="11.5" fill="#0F6E56">一个数都没估——所有数字来自 API 响应返回的 usage 字段</text>
+</svg>

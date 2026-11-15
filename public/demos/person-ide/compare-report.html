@@ -16,9 +16,6 @@
     .run-info { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) minmax(0, 1fr); gap: 14px; }
     .run-info p { margin: 5px 0 0; overflow-wrap: anywhere; }
     .label { color: #647184; font-size: .84rem; }
-    .metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-bottom: 18px; }
-    .metric { background: #edf4fc; border-radius: 10px; padding: 14px; }
-    .metric strong { display: block; margin-top: 4px; font-size: 1.2rem; }
     table { width: 100%; border-collapse: collapse; }
     th, td { text-align: left; padding: 11px 9px; border-bottom: 1px solid #e8edf3; }
     thead th { color: #596675; font-size: .88rem; }
@@ -41,6 +38,11 @@
     .detail p { line-height: 1.6; }
     .notice, .failure { border-radius: 8px; padding: 12px 14px; background: #fff5e5; color: #79530b; }
     .failure { background: #fff1f1; color: #922b2b; }
+    .token-details { border-top: 1px solid #e8edf3; margin-top: 18px; padding-top: 14px; }
+    .token-details summary { cursor: pointer; font-weight: 650; }
+    .stage-table { margin-top: 12px; }
+    .cache-detail, .usage-warning { color: #596675; font-size: .88rem; margin-top: 10px; }
+    .usage-warning { color: #79530b; }
     @media (max-width: 680px) { .run-info { grid-template-columns: 1fr; } .panel, .strategy-card { padding: 17px; } .table-wrap { overflow-x: auto; } table { min-width: 640px; } }
   </style>
 </head>
@@ -51,36 +53,29 @@
   <section class="panel run-info">
     <div><span class="label">文档</span><p>notes.md</p></div>
     <div><span class="label">问题</span><p>类别</p></div>
-    <div><span class="label">生成时间</span><p>2026-10-18 09:46:03 中国标准时间</p></div>
+    <div><span class="label">生成时间</span><p>2026-10-18 13:59:10 中国标准时间</p></div>
   </section>
   <section class="panel">
     <h2>Token 与准确度</h2>
-    <div class="metrics">
-      <div class="metric"><span class="label">Token 用量</span><strong>尚未采集</strong></div>
-      <div class="metric"><span class="label">准确度</span><strong>待评估</strong></div>
-    </div>
     <div class="table-wrap"><table>
-      <thead><tr><th>策略</th><th>输入 Token</th><th>输出 Token</th><th>总 Token</th><th>准确度</th></tr></thead>
-      <tbody><tr><th>纯全量</th><td>未采集</td><td>未采集</td><td>未采集</td><td>待评估</td></tr><tr><th>纯总结</th><td>未采集</td><td>未采集</td><td>未采集</td><td>待评估</td></tr></tbody>
+      <thead><tr><th>策略</th><th>输入 Token</th><th>输出 Token</th><th>合计 Token</th><th>准确度</th></tr></thead>
+      <tbody><tr><th>纯全量</th><td>3,962</td><td>138</td><td>4,100</td><td>待评估</td></tr><tr><th>纯总结</th><td>6,758</td><td>1,668</td><td>8,426</td><td>待评估</td></tr></tbody>
     </table></div>
   </section>
   <section>
     <h2>策略结果</h2>
-    <article class="strategy-card"><header><span class="strategy-name">纯全量</span><span class="pill">实际上下文：全量读取</span><span class="pill">意图置信度：不适用</span></header><h2>答案</h2><div class="answer markdown-body"><p>文档中讲解的是 Python 函数参数的<strong>类别</strong>，共列出以下 7 类：</p>
-<p><strong>四大基础类别：</strong></p>
+    <article class="strategy-card"><header><span class="strategy-name">纯全量</span><span class="pill">实际上下文：全量读取</span><span class="pill">意图置信度：不适用</span></header><h2>答案</h2><div class="answer markdown-body"><p>文档中讲解的是 Python 函数参数的<strong>类别</strong>，共列出以下几类：</p>
 <ol>
-<li>位置参数（Positional Arguments）</li>
-<li>关键字参数（Keyword Arguments）</li>
-<li>默认参数（Default Arguments）</li>
-<li>可变参数（<code>*args</code> 和 <code>**kwargs</code>）</li>
+<li><strong>位置参数</strong>（Positional Arguments）</li>
+<li><strong>关键字参数</strong>（Keyword Arguments）</li>
+<li><strong>默认参数</strong>（Default Arguments）</li>
+<li><strong>可变参数</strong>（Variable-length Arguments），包括 <code>*args</code> 和 <code>**kwargs</code></li>
+<li><strong>仅位置参数</strong>（Positional-only，Python 3.8+，用 <code>/</code> 标记）</li>
+<li><strong>仅关键字参数</strong>（Keyword-only，用 <code>*</code> 标记）</li>
 </ol>
-<p><strong>进阶类别（Python 3 新增）：</strong>
-5. 仅位置参数（Positional-only，Python 3.8+，用 <code>/</code> 标记）
-6. 仅关键字参数（Keyword-only，用 <code>*</code> 标记）
-7. 完整参数顺序（终极版，如 <code>def func(pos1, pos2, /, normal, *, kw_only)</code>）</p>
-<p>标准参数顺序为：位置参数 → 默认参数 → <code>*args</code> → 仅关键字参数 → <code>**kwargs</code>。</p>
-</div></article><article class="strategy-card"><header><span class="strategy-name">纯总结</span><span class="pill">实际上下文：总结</span><span class="pill">意图置信度：不适用</span></header><h2>答案</h2><div class="answer markdown-body"><p>文档中讲解的 Python 函数参数类别包括：位置参数、关键字参数、默认参数、可变参数（<em>args 与 **kwargs），以及 Python 3.8+ 的仅位置参数（/）和仅关键字参数（</em>）。</p>
-</div></article>
+<p>文档还给出了完整参数顺序：<code>仅位置 / 普通 / *args / 仅关键字 / **kwargs</code>。</p>
+</div><details class="token-details"><summary>查看 Token 阶段明细</summary><div class="table-wrap"><table class="stage-table"><thead><tr><th>阶段</th><th>输入</th><th>输出</th><th>合计</th></tr></thead><tbody><tr><td>最终回答</td><td>3,962</td><td>138</td><td>4,100</td></tr></tbody></table></div><p class="cache-detail">缓存命中 3,712 / 未命中 250（缓存是输入拆分，不重复计入总量）</p></details></article><article class="strategy-card"><header><span class="strategy-name">纯总结</span><span class="pill">实际上下文：总结</span><span class="pill">意图置信度：不适用</span></header><h2>答案</h2><div class="answer markdown-body"><p>文档中讲解的 Python 函数参数类别包括：位置参数、关键字参数、默认参数、可变参数（<em>args 与 **kwargs），以及 Python 3.8+ 的仅位置参数（/）和仅关键字参数（</em>）。</p>
+</div><details class="token-details"><summary>查看 Token 阶段明细</summary><div class="table-wrap"><table class="stage-table"><thead><tr><th>阶段</th><th>输入</th><th>输出</th><th>合计</th></tr></thead><tbody><tr><td>总结解析</td><td>4,427</td><td>1,616</td><td>6,043</td></tr><tr><td>最终回答</td><td>2,331</td><td>52</td><td>2,383</td></tr></tbody></table></div><p class="cache-detail">缓存命中 4,224 / 未命中 2,534（缓存是输入拆分，不重复计入总量）</p></details></article>
   </section>
 </main>
 </body>

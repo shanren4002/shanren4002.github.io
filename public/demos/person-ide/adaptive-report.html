@@ -16,9 +16,6 @@
     .run-info { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) minmax(0, 1fr); gap: 14px; }
     .run-info p { margin: 5px 0 0; overflow-wrap: anywhere; }
     .label { color: #647184; font-size: .84rem; }
-    .metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-bottom: 18px; }
-    .metric { background: #edf4fc; border-radius: 10px; padding: 14px; }
-    .metric strong { display: block; margin-top: 4px; font-size: 1.2rem; }
     table { width: 100%; border-collapse: collapse; }
     th, td { text-align: left; padding: 11px 9px; border-bottom: 1px solid #e8edf3; }
     thead th { color: #596675; font-size: .88rem; }
@@ -41,6 +38,11 @@
     .detail p { line-height: 1.6; }
     .notice, .failure { border-radius: 8px; padding: 12px 14px; background: #fff5e5; color: #79530b; }
     .failure { background: #fff1f1; color: #922b2b; }
+    .token-details { border-top: 1px solid #e8edf3; margin-top: 18px; padding-top: 14px; }
+    .token-details summary { cursor: pointer; font-weight: 650; }
+    .stage-table { margin-top: 12px; }
+    .cache-detail, .usage-warning { color: #596675; font-size: .88rem; margin-top: 10px; }
+    .usage-warning { color: #79530b; }
     @media (max-width: 680px) { .run-info { grid-template-columns: 1fr; } .panel, .strategy-card { padding: 17px; } .table-wrap { overflow-x: auto; } table { min-width: 640px; } }
   </style>
 </head>
@@ -51,37 +53,32 @@
   <section class="panel run-info">
     <div><span class="label">文档</span><p>notes.md</p></div>
     <div><span class="label">问题</span><p>类别</p></div>
-    <div><span class="label">生成时间</span><p>2026-10-18 09:47:31 中国标准时间</p></div>
+    <div><span class="label">生成时间</span><p>2026-10-18 14:04:00 中国标准时间</p></div>
   </section>
   <section class="panel">
     <h2>Token 与准确度</h2>
-    <div class="metrics">
-      <div class="metric"><span class="label">Token 用量</span><strong>尚未采集</strong></div>
-      <div class="metric"><span class="label">准确度</span><strong>待评估</strong></div>
-    </div>
     <div class="table-wrap"><table>
-      <thead><tr><th>策略</th><th>输入 Token</th><th>输出 Token</th><th>总 Token</th><th>准确度</th></tr></thead>
-      <tbody><tr><th>自适应</th><td>未采集</td><td>未采集</td><td>未采集</td><td>待评估</td></tr></tbody>
+      <thead><tr><th>策略</th><th>输入 Token</th><th>输出 Token</th><th>合计 Token</th><th>准确度</th></tr></thead>
+      <tbody><tr><th>自适应</th><td>7,330</td><td>2,013</td><td>9,343</td><td>待评估</td></tr></tbody>
     </table></div>
   </section>
   <section>
     <h2>策略结果</h2>
     <article class="strategy-card"><header><span class="strategy-name">自适应</span><span class="pill">实际上下文：总结</span><span class="pill">意图置信度：75%</span></header><h2>答案</h2><div class="answer markdown-body"><p>文档中 Python 函数参数的分类方式如下：</p>
-<p><strong>基础四类：</strong></p>
+<p><strong>四类基础参数类别：</strong></p>
 <ol>
-<li>位置参数（Positional Arguments）——按顺序传值</li>
-<li>关键字参数（Keyword Arguments）——用 <code>参数名=值</code> 传递，顺序无关</li>
-<li>默认参数（Default Arguments）——定义时求值一次，所有调用共享同一对象</li>
-<li>可变参数（Variable-length Arguments）——<code>*args</code> 打包多余位置参数为元组，<code>**kwargs</code> 打包多余关键字参数为字典</li>
+<li>位置参数（Positional Arguments）——按定义顺序绑定</li>
+<li>关键字参数（Keyword Arguments）——用参数名=值传递，顺序无关</li>
+<li>默认参数（Default Arguments）——定义时求值一次，需注意可变默认值陷阱</li>
+<li>可变参数（Variable-length Arguments）——*args 打包为元组，**kwargs 打包为字典</li>
 </ol>
-<p><strong>Python 3.8+ 扩展两类：</strong>
-5. 仅位置参数（Positional-only）——用 <code>/</code> 标记，<code>/</code> 之前的参数只能用位置传递
-6. 仅关键字参数（Keyword-only）——用 <code>*</code> 标记，<code>*</code> 之后的参数只能用关键字传递</p>
-<p><strong>完整参数顺序规则：</strong>
-位置参数 → 默认参数 → <code>*args</code> → 仅关键字参数 → <code>**kwargs</code>，违反顺序会引发语法错误。</p>
-<p><strong>inspect 视角的分类（param.kind 枚举）：</strong>
-POSITIONAL_ONLY、POSITIONAL_OR_KEYWORD、VAR_POSITIONAL、KEYWORD_ONLY、VAR_KEYWORD 五类。</p>
-</div><section class="detail"><h3>意图判断依据</h3><p>用户想了解“类别”的分类方式，属于知识点提炼/解答，而非要求读取全文原文细节。</p></section><section class="detail"><h3>澄清记录</h3><ol><li><p><strong>澄清问题：</strong>你想了解“类别”在某个具体场景中的定义，还是它的分类方式或示例？</p><p><strong>补充：</strong>分类方式</p></li></ol></section></article>
+<p><strong>Python 3.8+ 进阶分类：</strong>
+5. 仅位置参数（Positional-only，用 <code>/</code> 标记）——<code>/</code> 之前的参数只能用位置传递
+6. 仅关键字参数（Keyword-only，用 <code>*</code> 标记）——<code>*</code> 之后的参数只能用关键字传递</p>
+<p><strong>完整参数定义顺序：</strong>
+位置参数 → 默认参数 → *args → 仅关键字参数 → **kwargs</p>
+<p>此外，文档还提到可通过 <code>inspect</code> 模块的 <code>param.kind</code> 在运行时区分参数种类（如 POSITIONAL_ONLY、VAR_POSITIONAL、KEYWORD_ONLY 等）。</p>
+</div><section class="detail"><h3>意图判断依据</h3><p>用户想了解“类别”的分类方式，属于知识点提炼/解答，而非要求读取全文原文。</p></section><section class="detail"><h3>澄清记录</h3><ol><li><p><strong>澄清问题：</strong>你想了解“类别”在某个具体场景中的定义，还是它的分类方式或示例？</p><p><strong>补充：</strong>分类方式</p></li></ol></section><details class="token-details"><summary>查看 Token 阶段明细</summary><div class="table-wrap"><table class="stage-table"><thead><tr><th>阶段</th><th>输入</th><th>输出</th><th>合计</th></tr></thead><tbody><tr><td>意图分类</td><td>158</td><td>39</td><td>197</td></tr><tr><td>澄清问题生成</td><td>132</td><td>23</td><td>155</td></tr><tr><td>澄清后重分类</td><td>191</td><td>37</td><td>228</td></tr><tr><td>总结解析</td><td>4,427</td><td>1,673</td><td>6,100</td></tr><tr><td>最终回答</td><td>2,422</td><td>241</td><td>2,663</td></tr></tbody></table></div><p class="cache-detail">缓存命中 4,224 / 未命中 3,106（缓存是输入拆分，不重复计入总量）</p></details></article>
   </section>
 </main>
 </body>
